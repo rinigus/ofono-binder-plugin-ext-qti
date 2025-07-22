@@ -122,8 +122,11 @@ qti_slot_new(
     QtiSlot* self = g_object_new(THIS_TYPE, NULL);
     BinderExtSlot* slot = &self->parent;
     char* radio_slot =  g_strdup_printf("imsradio%d", radio->slot_index);
+    const char *dev = "/dev/binder"; //radio->dev;
 
-    self->radio_ext = qti_radio_ext_new(radio->dev, radio_slot);
+    DBG("In QTI slot_new %s", dev);
+
+    self->radio_ext = qti_radio_ext_new(dev, radio_slot);
     if (self->radio_ext) {
         self->ims = qti_ims_new(radio_slot, self->radio_ext);
         self->call = qti_ims_call_new(self->radio_ext);

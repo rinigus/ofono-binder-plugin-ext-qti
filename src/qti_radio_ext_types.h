@@ -22,29 +22,34 @@ typedef enum qti_radio_interface {
     QTI_RADIO_INTERFACE_1_0,
     QTI_RADIO_INTERFACE_1_1,
     QTI_RADIO_INTERFACE_1_2,
+    QTI_RADIO_INTERFACE_AIDL,
     QTI_RADIO_INTERFACE_COUNT
 } QTI_RADIO_INTERFACE;
 
 #define QTI_RADIO_IFACE                 "IImsRadio"
 #define QTI_RADIO_RESPONSE_IFACE        "IImsRadioResponse"
 #define QTI_RADIO_INDICATION_IFACE      "IImsRadioIndication"
-#define QTI_RADIO_IFACE_PREFIX          "vendor.qti.hardware.radio.ims@"
+#define QTI_RADIO_IFACE_PREFIX          "vendor.qti.hardware.radio.ims"
 
-#define QTI_RADIO_IFACE_1_0(x)          QTI_RADIO_IFACE_PREFIX "1.0::" x
-#define QTI_RADIO_IFACE_1_1(x)          QTI_RADIO_IFACE_PREFIX "1.1::" x
-#define QTI_RADIO_IFACE_1_2(x)          QTI_RADIO_IFACE_PREFIX "1.2::" x
+#define QTI_RADIO_IFACE_1_0(x)          QTI_RADIO_IFACE_PREFIX "@1.0::" x
+#define QTI_RADIO_IFACE_1_1(x)          QTI_RADIO_IFACE_PREFIX "@1.1::" x
+#define QTI_RADIO_IFACE_1_2(x)          QTI_RADIO_IFACE_PREFIX "@1.2::" x
+#define QTI_RADIO_IFACE_AIDL(x)         QTI_RADIO_IFACE_PREFIX "." x
 
 #define QTI_RADIO_1_0                   QTI_RADIO_IFACE_1_0(QTI_RADIO_IFACE)
 #define QTI_RADIO_1_1                   QTI_RADIO_IFACE_1_1(QTI_RADIO_IFACE)
 #define QTI_RADIO_1_2                   QTI_RADIO_IFACE_1_2(QTI_RADIO_IFACE)
+#define QTI_RADIO_AIDL                  QTI_RADIO_IFACE_AIDL(QTI_RADIO_IFACE)
 
 #define QTI_RADIO_RESPONSE_1_0          QTI_RADIO_IFACE_1_0(QTI_RADIO_RESPONSE_IFACE)
 #define QTI_RADIO_RESPONSE_1_1          QTI_RADIO_IFACE_1_1(QTI_RADIO_RESPONSE_IFACE)
 #define QTI_RADIO_RESPONSE_1_2          QTI_RADIO_IFACE_1_2(QTI_RADIO_RESPONSE_IFACE)
+#define QTI_RADIO_RESPONSE_AIDL         QTI_RADIO_IFACE_AIDL(QTI_RADIO_RESPONSE_IFACE)
 
 #define QTI_RADIO_INDICATION_1_0        QTI_RADIO_IFACE_1_0(QTI_RADIO_INDICATION_IFACE)
 #define QTI_RADIO_INDICATION_1_1        QTI_RADIO_IFACE_1_1(QTI_RADIO_INDICATION_IFACE)
 #define QTI_RADIO_INDICATION_1_2        QTI_RADIO_IFACE_1_2(QTI_RADIO_INDICATION_IFACE)
+#define QTI_RADIO_INDICATION_AIDL       QTI_RADIO_IFACE_AIDL(QTI_RADIO_INDICATION_IFACE)
 
 #define QTI_RADIO_REQ_LAST_1_0          40
 #define QTI_RADIO_REQ_LAST_1_1          41
@@ -647,12 +652,18 @@ typedef enum ims_radio_resp {
     e(26, onIncomingImsSms, INCOMING_SMS_INDICATION) \
     e(27, onVopsChanged, VOPS_CHANGED_INDICATION)
 
+#define QTI_RADIO_IND_AIDL(e) \
+    e(29, onModemSupportsWfcRoamingModeConfiguration, MODEM_SUPP_WFC_ROAMING) \
+    e(36, onServiceDomainChanged, SERVICE_DOMAIN_CHANGED)
+
+
 typedef enum ims_radio_ind {
     /* vendor.mediatek.hardware.qtiradioex@3.0::IImsRadioIndication */
 #define QTI_RADIO_IND_(code, name, NAME) QTI_RADIO_IND_##NAME = code,
     QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
     QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
     QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
+    QTI_RADIO_IND_AIDL(QTI_RADIO_IND_)
 #undef QTI_RADIO_IND_
 } IMS_RADIO_IND;
 

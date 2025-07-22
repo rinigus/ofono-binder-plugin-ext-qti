@@ -197,6 +197,9 @@ qti_radio_ext_ind_name(
 #define QTI_RADIO_IND_(code, name, NAME) \
         case QTI_RADIO_IND_##NAME: return #name;
     QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
+    QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
+    QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
+    QTI_RADIO_IND_AIDL(QTI_RADIO_IND_)
 #undef QTI_RADIO_IND_
     }
     return NULL;
@@ -219,10 +222,10 @@ qti_radio_ext_log_req(
     name = qti_radio_ext_req_name(code);
 
     if (serial) {
-        gutil_log(log, level, "%s< [%08x] %u %s",
+        gutil_log(log, level, "REQ: %s < [%08x] %u %s",
             self->slot, serial, code, name ? name : "???");
     } else {
-        gutil_log(log, level, "%s< %u %s",
+        gutil_log(log, level, "REQ: %s < %u %s",
             self->slot, code, name ? name : "???");
     }
 }
@@ -242,7 +245,7 @@ qti_radio_ext_log_resp(
 
     name = qti_radio_ext_resp_name(code);
 
-    gutil_log(log, level, "%s> [%08x] %u %s",
+    gutil_log(log, level, "RESP: %s > [%08x] %u %s",
         self->slot, serial, code, name ? name : "???");
 }
 
@@ -261,7 +264,7 @@ qti_radio_ext_log_ind(
 
     name = qti_radio_ext_ind_name(code);
 
-    gutil_log(log, level, "%s > %u %s", self->slot, code,
+    gutil_log(log, level, "IND: %s > %u %s", self->slot, code,
         name ? name : "???");
 }
 
@@ -307,27 +310,68 @@ qti_radio_ext_read_ims_reg_status_info(
     QtiRadioExt* self,
     GBinderReader* reader)
 {
-    const QtiRadioRegInfo* info;
+  DBG("To read: %u", gbinder_reader_bytes_remaining(reader));
+  gsize size;
+  const char *data = gbinder_reader_read_parcelable(reader, &size);
+  DBG("DUMP content: size=%u", size);
 
-    info = gbinder_reader_read_hidl_struct(reader, QtiRadioRegInfo);
-    if (info) {
-        const char *uri = info->uri.data.str ? info->uri.data.str : "";
-        const char *error_msg = info->error_message.data.str ? info->error_message.data.str : "";
+  static const GLogModule* log = &qti_radio_ext_binder_dump_module;
+  const int level = GLOG_LEVEL_VERBOSE;
+  gutil_log_dump(log, level, "  ", data, size);
 
-        DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
-            " error_code:%d\n"
-            " uri:%s error_msg:%s",
-            self->slot,
-            info->state,
-            info->radio_tech,
-            info->error_code,
-            uri, error_msg);
+  return NULL;
+  // return NULL;
+  // guint32 state;
+  // guint32 error_code;
+  // const char *error_message;
+  // guint32 radio_tech;
+  // const char *uri;
+  // gboolean success = (gbinder_reader_read_uint32(reader, &state) &&
+  //                     gbinder_reader_read_uint32(reader, &error_code));
+  // if (success) {
+  //     error_message = gbinder_reader_read_hidl_string_c(reader);
+  //     success = success && gbinder_reader_read_uint32(reader, &radio_tech);
+  //     if (success)
+  //         uri = gbinder_reader_read_hidl_string_c(reader);
+  // }
 
-        return info;
-    } else {
-        DBG("%s: failed to parse QtiRadioRegInfo", self->slot);
-        return NULL;
-    }
+  // if (success) {
+  // //   DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
+  // //       " error_code:%d\n"
+  // //       " uri:%s error_msg:%s",
+  // //       self->slot, state, radio_tech, error_code, uri ? uri : "",
+  // //       error_message ? error_message : "");
+  //   DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
+  //       " error_code:%d",
+  //       self->slot, state, radio_tech, error_code);
+
+  //   return NULL;
+  // } else {
+  //   DBG("%s: failed to parse QtiRadioRegInfo", self->slot);
+  //   return NULL;
+  // }
+
+//   const QtiRadioRegInfo* info;
+//   info = gbinder_reader_read_hidl_struct(reader, QtiRadioRegInfo);
+//   if (info) {
+//       const char *uri = info->uri.data.str ? info->uri.data.str : "";
+//       const char *error_msg = info->error_message.data.str ?
+//       info->error_message.data.str : "";
+
+//       DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
+//           " error_code:%d\n"
+//           " uri:%s error_msg:%s",
+//           self->slot,
+//           info->state,
+//           info->radio_tech,
+//           info->error_code,
+//           uri, error_msg);
+
+//       return info;
+//   } else {
+//       DBG("%s: failed to parse QtiRadioRegInfo", self->slot);
+//       return NULL;
+//   }
 }
 
 static
@@ -531,6 +575,21 @@ qti_radio_ext_indication(
             return NULL;
         case QTI_RADIO_IND_INCOMING_SMS_INDICATION:
             qti_radio_ext_handle_incoming_sms_indication(self, &args);
+            return NULL;
+        }
+    } else if (g_str_equal(iface, QTI_RADIO_INDICATION_AIDL)) {
+        switch(code) {
+        case QTI_RADIO_IND_REG_STATE_INDICATION:
+            qti_radio_ext_handle_ims_reg_status_report(self, &args);
+            return NULL;
+        case QTI_RADIO_IND_RING_INDICATION:
+            g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_RING], 0);
+            return NULL;
+        case QTI_RADIO_IND_CALL_STATE_INDICATION:
+            qti_radio_ext_handle_call_state_indication(self, &args);
+            return NULL;
+        case QTI_RADIO_IND_CALL_STATE_INDICATION_1_2:
+            qti_radio_ext_handle_call_state_indication(self, &args);
             return NULL;
         }
     }
@@ -801,9 +860,10 @@ qti_radio_ext_result_request_submit(
 
 
 static const GBinderClientIfaceInfo radio_iface_info[] = {
-    {QTI_RADIO_1_2, QTI_RADIO_REQ_LAST_1_2 },
-    {QTI_RADIO_1_1, QTI_RADIO_REQ_LAST_1_1 },
-    {QTI_RADIO_1_0, QTI_RADIO_REQ_LAST_1_0 }
+    // {QTI_RADIO_1_2, QTI_RADIO_REQ_LAST_1_2 },
+    // {QTI_RADIO_1_1, QTI_RADIO_REQ_LAST_1_1 },
+    // {QTI_RADIO_1_0, QTI_RADIO_REQ_LAST_1_0 },
+    {QTI_RADIO_AIDL, UINT_MAX }
 };
 
 typedef struct qti_radio_interface_desc {
@@ -820,12 +880,13 @@ typedef struct qti_radio_interface_desc {
         QTI_RADIO_INDICATION_##v
 
 static const QtiRadioInterfaceDesc qti_radio_interfaces[] = {
-   { QTI_RADIO_INTERFACE_DESC(1_2) },
-   { QTI_RADIO_INTERFACE_DESC(1_1) },
-   { QTI_RADIO_INTERFACE_DESC(1_0) }
+    // { QTI_RADIO_INTERFACE_DESC(1_2) },
+    // { QTI_RADIO_INTERFACE_DESC(1_1) },
+    // { QTI_RADIO_INTERFACE_DESC(1_0) },
+    { QTI_RADIO_INTERFACE_DESC(AIDL) }
 };
 
-#define DEFAULT_INTERFACE QTI_RADIO_INTERFACE_1_2
+#define DEFAULT_INTERFACE QTI_RADIO_INTERFACE_AIDL //QTI_RADIO_INTERFACE_1_2
 
 
 static
@@ -850,6 +911,8 @@ qti_radio_ext_create(
         desc->response, qti_radio_ext_response, self);
     self->indication = gbinder_servicemanager_new_local_object(sm,
         desc->indication, qti_radio_ext_indication, self);
+    gbinder_local_object_set_stability(self->response, GBINDER_STABILITY_VINTF);
+    gbinder_local_object_set_stability(self->indication, GBINDER_STABILITY_VINTF);
     req = gbinder_client_new_request2(self->client, code);
     gbinder_local_request_init_writer(req, &writer);
     gbinder_writer_append_local_object(&writer, self->response);
@@ -899,6 +962,7 @@ qti_radio_ext_new_with_version(
                 if (obj) {
                     DBG("Connected to %s", fqname);
                     self = qti_radio_ext_create(sm, obj, slot, desc);
+                    DBG("Created radio_ext");
                 } else {
                     DBG("can't connect to %s", fqname);
                 }
