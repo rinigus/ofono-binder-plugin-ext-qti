@@ -64,11 +64,13 @@ enum RegState : int32_t {
 };
 */
 
+// Updated based on AIDL ims.apk -> vendor/qti/hardware/radio/ims/RegState
+
 typedef enum qti_radio_reg_state {
-    QTI_RADIO_REG_STATE_REGISTERED = 0,
-    QTI_RADIO_REG_STATE_NOT_REGISTERED = 1,
-    QTI_RADIO_REG_STATE_REGISTERING = 2,
-    QTI_RADIO_REG_STATE_INVALID = 3,
+    QTI_RADIO_REG_STATE_REGISTERED = 1,
+    QTI_RADIO_REG_STATE_NOT_REGISTERED = 2,
+    QTI_RADIO_REG_STATE_REGISTERING = 3,
+    QTI_RADIO_REG_STATE_INVALID = 0,
 } QTI_RADIO_REG_STATE;
 
 /*

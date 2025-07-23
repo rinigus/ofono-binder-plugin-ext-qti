@@ -305,73 +305,51 @@ qti_radio_ext_dump_request(
     gutil_log_dump(log, level, "  ", data, size);
 }
 
-const QtiRadioRegInfo*
+QTI_RADIO_REG_STATE
 qti_radio_ext_read_ims_reg_status_info(
     QtiRadioExt* self,
     GBinderReader* reader)
 {
-  DBG("To read: %u", gbinder_reader_bytes_remaining(reader));
-  gsize size;
-  const char *data = gbinder_reader_read_parcelable(reader, &size);
-  DBG("DUMP content: size=%u", size);
+    gint32 hasdata;
+    gint32 datasz;
+    gint32 state = QTI_RADIO_REG_STATE_INVALID;
+    gint32 error_code;
+    const char *error_message = NULL;
+    gint32 radio_tech;
+    const char *uri = NULL;
 
-  static const GLogModule* log = &qti_radio_ext_binder_dump_module;
-  const int level = GLOG_LEVEL_VERBOSE;
-  gutil_log_dump(log, level, "  ", data, size);
+    gboolean success = (
+        gbinder_reader_read_int32(reader, &hasdata) &&
+        hasdata &&
+        gbinder_reader_read_int32(reader, &datasz) &&
+        gbinder_reader_read_int32(reader, &state) &&
+        gbinder_reader_read_int32(reader, &error_code)
+    );
+    if (success) {
+        error_message = gbinder_reader_read_string16(reader);
+        success = success && gbinder_reader_read_int32(reader, &radio_tech);
+        if (success)
+            uri = gbinder_reader_read_string16(reader);
+    }
 
-  return NULL;
-  // return NULL;
-  // guint32 state;
-  // guint32 error_code;
-  // const char *error_message;
-  // guint32 radio_tech;
-  // const char *uri;
-  // gboolean success = (gbinder_reader_read_uint32(reader, &state) &&
-  //                     gbinder_reader_read_uint32(reader, &error_code));
-  // if (success) {
-  //     error_message = gbinder_reader_read_hidl_string_c(reader);
-  //     success = success && gbinder_reader_read_uint32(reader, &radio_tech);
-  //     if (success)
-  //         uri = gbinder_reader_read_hidl_string_c(reader);
-  // }
+    if (success) {
+      DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
+          " error_code:%d datasz: %d\n"
+          " uri:%s error_msg:%s",
+          self->slot, state, radio_tech, error_code, datasz, uri ? uri : "",
+          error_message ? error_message : "");
+    } else
+        state = QTI_RADIO_REG_STATE_INVALID;
 
-  // if (success) {
-  // //   DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
-  // //       " error_code:%d\n"
-  // //       " uri:%s error_msg:%s",
-  // //       self->slot, state, radio_tech, error_code, uri ? uri : "",
-  // //       error_message ? error_message : "");
-  //   DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
-  //       " error_code:%d",
-  //       self->slot, state, radio_tech, error_code);
+    g_free(error_message);
+    g_free(uri);
 
-  //   return NULL;
-  // } else {
-  //   DBG("%s: failed to parse QtiRadioRegInfo", self->slot);
-  //   return NULL;
-  // }
-
-//   const QtiRadioRegInfo* info;
-//   info = gbinder_reader_read_hidl_struct(reader, QtiRadioRegInfo);
-//   if (info) {
-//       const char *uri = info->uri.data.str ? info->uri.data.str : "";
-//       const char *error_msg = info->error_message.data.str ?
-//       info->error_message.data.str : "";
-
-//       DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
-//           " error_code:%d\n"
-//           " uri:%s error_msg:%s",
-//           self->slot,
-//           info->state,
-//           info->radio_tech,
-//           info->error_code,
-//           uri, error_msg);
-
-//       return info;
-//   } else {
-//       DBG("%s: failed to parse QtiRadioRegInfo", self->slot);
-//       return NULL;
-//   }
+    if (success) {
+      return state;
+    } else {
+        DBG("%s: failed to parse QtiRadioRegInfo", self->slot);
+        return QTI_RADIO_REG_STATE_INVALID;
+    }
 }
 
 static
@@ -383,11 +361,11 @@ qti_radio_ext_handle_ims_reg_status_report(
     GBinderReader reader;
 
     gbinder_reader_copy(&reader, args);
-    const QtiRadioRegInfo* info =
-        qti_radio_ext_read_ims_reg_status_info(self, &reader);
+    QTI_RADIO_REG_STATE state = qti_radio_ext_read_ims_reg_status_info(self, &reader);
 
-    g_signal_emit(self, qti_radio_ext_signals[SIGNAL_IMS_REG_STATUS_CHANGED],
-                    0, info->state);
+    if (state != QTI_RADIO_REG_STATE_INVALID)
+        g_signal_emit(self, qti_radio_ext_signals[SIGNAL_IMS_REG_STATUS_CHANGED],
+                    0, state);
 }
 
 static
@@ -591,6 +569,8 @@ qti_radio_ext_indication(
         case QTI_RADIO_IND_CALL_STATE_INDICATION_1_2:
             qti_radio_ext_handle_call_state_indication(self, &args);
             return NULL;
+        default:
+          DBG("Code ignored: %d", code);
         }
     }
 

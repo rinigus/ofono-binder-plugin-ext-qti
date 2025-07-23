@@ -73,7 +73,7 @@ qti_radio_ext_cancel(
     QtiRadioExt* self,
     guint id);
 
-const QtiRadioRegInfo*
+QTI_RADIO_REG_STATE
 qti_radio_ext_read_ims_reg_status_info(
     QtiRadioExt* self,
     GBinderReader* reader);

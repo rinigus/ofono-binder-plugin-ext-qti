@@ -192,16 +192,12 @@ qti_ims_reg_status_response(
     GBinderReader reader_copy;
 
     gbinder_reader_copy(&reader_copy, reader);
-    const QtiRadioRegInfo* info = qti_radio_ext_read_ims_reg_status_info(radio_ext, &reader_copy);
+    state = qti_radio_ext_read_ims_reg_status_info(radio_ext, &reader_copy);
 
-    if (!info) {
+    if (state == QTI_RADIO_REG_STATE_INVALID) {
         DBG("Failed to parse QtiRadioRegInfo");
         return;
     }
-
-    state = info->state;
-
-    DBG("Get reg state %d now", state);
 
     qti_ims_reg_status_changed(radio_ext, state, req->user_data);
 }
@@ -261,7 +257,7 @@ qti_ims_set_registration(
         complete ? qti_ims_result_request_complete : NULL,
         qti_ims_result_request_destroy, req);
 
-    DBG("%s %s", self->slot, enabled ? "on" : "off");
+    DBG("qti_ims_set_registration: %s %s", self->slot, enabled ? "on" : "off");
     if (id) {
         return id;
     } else {
@@ -295,7 +291,7 @@ qti_ims_add_state_handler(
 {
     QtiIms* self = THIS(ext);
 
-    DBG("%s", self->slot);
+    DBG("qti_ims_add_state_handler: %s", self->slot);
     return G_LIKELY(handler) ? g_signal_connect(self,
         SIGNAL_STATE_CHANGED_NAME, G_CALLBACK(handler), user_data) : 0;
 }
@@ -306,7 +302,7 @@ qti_ims_add_get_state_handler(
     QtiIms* self,
     QtiImsGetRegStatusFunc handler)
 {
-    DBG("%s", self->slot);
+    DBG("qti_ims_add_get_state_handler: %s", self->slot);
     return G_LIKELY(handler) ? g_signal_connect(self,
         SIGNAL_GET_STATE_NAME, G_CALLBACK(handler), self) : 0;
 }
