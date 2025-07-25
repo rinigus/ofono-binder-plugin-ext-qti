@@ -312,7 +312,7 @@ qti_radio_ext_read_ims_reg_status_info(
 {
     gint32 hasdata;
     gint32 datasz;
-    gint32 state = QTI_RADIO_REG_STATE_INVALID;
+    gint32 state = QTI_RADIO_REG_STATE_FAILED_TO_READ;
     gint32 error_code;
     const char *error_message = NULL;
     gint32 radio_tech;
@@ -338,8 +338,7 @@ qti_radio_ext_read_ims_reg_status_info(
           " uri:%s error_msg:%s",
           self->slot, state, radio_tech, error_code, datasz, uri ? uri : "",
           error_message ? error_message : "");
-    } else
-        state = QTI_RADIO_REG_STATE_INVALID;
+    }
 
     g_free(error_message);
     g_free(uri);
@@ -348,7 +347,7 @@ qti_radio_ext_read_ims_reg_status_info(
       return state;
     } else {
         DBG("%s: failed to parse QtiRadioRegInfo", self->slot);
-        return QTI_RADIO_REG_STATE_INVALID;
+        return QTI_RADIO_REG_STATE_FAILED_TO_READ;
     }
 }
 
@@ -363,7 +362,7 @@ qti_radio_ext_handle_ims_reg_status_report(
     gbinder_reader_copy(&reader, args);
     QTI_RADIO_REG_STATE state = qti_radio_ext_read_ims_reg_status_info(self, &reader);
 
-    if (state != QTI_RADIO_REG_STATE_INVALID)
+    if (state != QTI_RADIO_REG_STATE_FAILED_TO_READ)
         g_signal_emit(self, qti_radio_ext_signals[SIGNAL_IMS_REG_STATUS_CHANGED],
                     0, state);
 }
@@ -393,53 +392,185 @@ qti_ims_call_radio_state_to_state(
     }
 }
 
+typedef struct {
+    gint32 state;
+    gint32 index;
+    gint32 toa;
+    gboolean isMpty;
+    gboolean isMT;
+    //MultiIdentityLineInfo* mtMultiLineInfo; // Parcelable
+    gint32 als;
+    gboolean isVoice;
+    gboolean isVoicePrivacy;
+    char* number;
+    gint32 numberPresentation;
+    char* name;
+    gint32 namePresentation;
+    //CallDetails* callDetails; // Parcelable
+    //CallFailCauseResponse* failCause; // Parcelable
+    gboolean isEncrypted;
+    gboolean isCalledPartyRinging;
+    char* historyInfo;
+    gboolean isVideoConfSupported;
+    //VerstatInfo* verstatInfo; // Parcelable
+    gint32 tirMode;
+    gboolean isPreparatory;
+    //CrsData* crsData; // Parcelable
+    //CallProgressInfo* callProgInfo; // Parcelable
+    char* diversionInfo;
+    //MsimAdditionalCallInfo* additionalCallInfo; // Parcelable
+    //AudioQuality* audioQuality; // Parcelable
+    //gint32 modemCallId; // not in the data
+} AIDLCallInfo;
+
 static
 BinderExtCallInfo*
-qti_ims_call_info_new(
-    guint call_id,
-    BINDER_EXT_CALL_STATE state,
-    GBinderHidlString number,
-    GBinderHidlString name
-    )
+qti_ims_call_info_new(const AIDLCallInfo* info)
 {
-    const gsize number_len = number.len;
+    const gsize number_len = (info->number && *info->number) ?
+        strlen(info->number) : 0;
+    const gsize name_len = (info->name && *info->name) ?
+        strlen(info->name) : 0;
+
     const gsize total = G_ALIGN8(sizeof(BinderExtCallInfo)) +
-        G_ALIGN8(number_len + 1);
+        (number_len ? G_ALIGN8(number_len + 1) : 0) +
+        (name_len ? G_ALIGN8(name_len + 1) : 0);
+
     BinderExtCallInfo* dest = g_malloc0(total);
     char* ptr = ((char*)dest) + G_ALIGN8(sizeof(BinderExtCallInfo));
 
-    dest->call_id = call_id;
-
-    // do we need name?
-    dest->name = NULL;
-    dest->state = qti_ims_call_radio_state_to_state(state);
+    dest->call_id = info->index;
+    dest->state = qti_ims_call_radio_state_to_state(info->state);
     dest->type = BINDER_EXT_CALL_TYPE_VOICE;
     dest->flags = BINDER_EXT_CALL_FLAG_IMS | BINDER_EXT_CALL_FLAG_INCOMING;
+    dest->toa = info->toa;
 
-    dest->number = ptr;
-    memcpy(ptr, number.data.str, number_len);
-    ptr += G_ALIGN8(number_len + 1);
+    // Copy number if present
+    if (number_len) {
+        dest->number = ptr;
+        memcpy(ptr, info->number, number_len);
+        ptr += G_ALIGN8(number_len + 1);
+    } else {
+        dest->number = NULL;
+    }
+
+    // Copy name if present
+    if (name_len) {
+        dest->name = ptr;
+        memcpy(ptr, info->name, name_len);
+        // ptr += G_ALIGN8(name_len + 1); // not needed unless allocating more
+    } else {
+        dest->name = NULL;
+    }
 
     return dest;
 }
 
 static
-GPtrArray*
-qti_radio_ext_read_call_state_info(
-    QtiRadioCallInfo* call_info_array,
-    gsize count)
+gsize
+binder_read_parcelable_size(
+    GBinderReader* reader)
 {
-    // array of QtiRadioCallInfo
-    GPtrArray* call_ext_info_array = g_ptr_array_new_with_free_func(g_free);
+    /* Read a single AIDL parcelable header and return inner data size */
+    guint32 non_null = 0, payload_size = 0;
+    if (gbinder_reader_read_uint32(reader, &non_null) && non_null &&
+        gbinder_reader_read_uint32(reader, &payload_size) &&
+        payload_size >= sizeof(payload_size)) {
 
-    for (gsize i = 0; i < count; i++) {
-        QtiRadioCallInfo* call_info = &call_info_array[i];
-        BinderExtCallInfo* dest = qti_ims_call_info_new(call_info->index, call_info->state, call_info->number, call_info->name);
-
-        g_ptr_array_add(call_ext_info_array, dest);
+        return payload_size - sizeof(payload_size);
     }
+    return 0;
+}
 
-    return call_ext_info_array;
+static
+void
+binder_skip_parcelable_end(
+    GBinderReader* reader,
+    gsize parcel_size,
+    gsize initial_size)
+{
+    gsize data_read;
+    data_read = gbinder_reader_bytes_read(reader) - initial_size;
+    while (data_read < parcel_size) {
+        gbinder_reader_read_uint32(reader, NULL);
+        data_read += sizeof(guint32);
+    }
+}
+
+
+static
+gboolean
+qti_radio_ext_read_call_info(GBinderReader* reader, AIDLCallInfo* info)
+{
+    gsize parcel_size;
+    gsize initial_size;
+
+    memset(info, 0, sizeof(*info));
+
+    // parcelable header
+    parcel_size = binder_read_parcelable_size(reader);
+    if (parcel_size == 0)
+      return FALSE;
+
+    // initial location
+    initial_size = gbinder_reader_bytes_read(reader);
+
+    // actual fields
+    if (!gbinder_reader_read_int32(reader, &info->state)) goto fail;
+    if (!gbinder_reader_read_int32(reader, &info->index)) goto fail;
+    if (!gbinder_reader_read_int32(reader, &info->toa)) goto fail;
+    if (!gbinder_reader_read_bool(reader, &info->isMpty)) goto fail;
+    if (!gbinder_reader_read_bool(reader, &info->isMT)) goto fail;
+
+    gbinder_reader_read_parcelable(reader, NULL); // mtMultiLineInfo
+
+    if (!gbinder_reader_read_int32(reader, &info->als)) goto fail;
+    if (!gbinder_reader_read_bool(reader, &info->isVoice)) goto fail;
+    if (!gbinder_reader_read_bool(reader, &info->isVoicePrivacy)) goto fail;
+
+    info->number = gbinder_reader_read_string16(reader);
+    if (!gbinder_reader_read_int32(reader, &info->numberPresentation)) goto fail;
+
+    info->name = gbinder_reader_read_string16(reader);
+    if (!gbinder_reader_read_int32(reader, &info->namePresentation)) goto fail;
+
+    gbinder_reader_read_parcelable(reader, NULL); // callDetails
+    gbinder_reader_read_parcelable(reader, NULL); // failCause
+
+    if (!gbinder_reader_read_bool(reader, &info->isEncrypted)) goto fail;
+    if (!gbinder_reader_read_bool(reader, &info->isCalledPartyRinging)) goto fail;
+
+    info->historyInfo = gbinder_reader_read_string16(reader);
+    if (!gbinder_reader_read_bool(reader, &info->isVideoConfSupported)) goto fail;
+
+    gbinder_reader_read_parcelable(reader, NULL); // verstatInfo
+
+    if (!gbinder_reader_read_int32(reader, &info->tirMode)) goto fail;
+    if (!gbinder_reader_read_bool(reader, &info->isPreparatory)) goto fail;
+
+    gbinder_reader_read_parcelable(reader, NULL); // crsData
+    gbinder_reader_read_parcelable(reader, NULL); // callProgInfo
+
+    info->diversionInfo = gbinder_reader_read_string16(reader);
+
+    binder_skip_parcelable_end(reader, parcel_size, initial_size);
+
+    // gbinder_reader_read_parcelable(reader, NULL); // additionalCallInfo
+    // gbinder_reader_read_parcelable(reader, NULL); // audioQuality
+
+    // this one seems to be absent in reality
+   // if (!gbinder_reader_read_int32(reader, &info->modemCallId)) goto fail;
+
+    return TRUE;
+
+fail:
+    // Cleanup on partial failure
+    g_free(info->number);
+    g_free(info->name);
+    g_free(info->historyInfo);
+    g_free(info->diversionInfo);
+    memset(info, 0, sizeof(*info));
+    return FALSE;
 }
 
 
@@ -449,22 +580,52 @@ qti_radio_ext_handle_call_state_indication(
     QtiRadioExt* self,
     const GBinderReader* args)
 {
-    /* callInfoIndication(vec<CallInfo> callList) */
-    QtiRadioCallInfo* call_infos;
     GBinderReader reader;
-    gsize count;
+    guint32 count;
+    gboolean success;
+
+    // array of BinderExtCallInfo
+    GPtrArray* call_info_ptr = g_ptr_array_new_with_free_func(g_free);
 
     gbinder_reader_copy(&reader, args);
-    call_infos = gbinder_reader_read_hidl_type_vec(&reader, QtiRadioCallInfo, &count);
 
-    if (call_infos) {
-        GPtrArray* call_info_ptr = qti_radio_ext_read_call_state_info(call_infos, count);
+    // get size of the vector
+    success = gbinder_reader_read_uint32(&reader, &count);
+    DBG("CallState indicator: number of calls %u", count);
 
+    for (guint32 i = 0; success && i < count; i++) {
+        // read one call info
+        AIDLCallInfo info;
+        success = qti_radio_ext_read_call_info(&reader, &info);
+
+        if (!success) {
+          DBG("Failed to parse CallInfo %d", success);
+        } else {
+            DBG("state=%d index=%d toa=%d inMpty=%d isMT=%d\n"
+                "number=%s name=%s historyInfo=%s diversionInfo=%s", info.state,
+                info.index, info.toa, info.isMpty, info.isMT,
+                info.number ? info.number : "",
+                info.name ? info.name : "",
+                info.historyInfo ? info.historyInfo : "",
+                info.diversionInfo ? info.diversionInfo : ""
+            );
+
+            BinderExtCallInfo* dest = qti_ims_call_info_new(&info);
+            g_ptr_array_add(call_info_ptr, dest);
+        }
+
+        // free all strings
+        g_free(info.number);
+        g_free(info.name);
+        g_free(info.historyInfo);
+        g_free(info.diversionInfo);
+    }
+
+    if (success)
         g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_CALL_STATE_CHANGED],
                       0, call_info_ptr);
-    } else {
-        DBG("%s: failed to parse call state data", self->slot);
-    }
+    else
+        g_ptr_array_free(call_info_ptr, TRUE);
 }
 
 /*
