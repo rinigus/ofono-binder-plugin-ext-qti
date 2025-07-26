@@ -329,17 +329,14 @@ qti_ims_call_hangup(
     GDestroyNotify destroy,
     void* user_data)
 {
-    // eh, we can use built in hangup
-    // some devices may not support this, so we need to implement
-    // it eventually
-    return 0;
+    DBG("Hanging up IMS called %d %d %d", call_id, reason, flags);
 
     QtiImsCall* self = THIS(ext);
 
     QtiImsCallResultRequest* req = qti_ims_call_result_request_new(ext,
         complete, destroy, user_data);
 
-    guint id = qti_radio_ext_hangup(self->radio_ext, call_id,
+    guint id = qti_radio_ext_hangup(self->radio_ext, call_id, reason, flags,
         qti_ims_call_result_response, qti_ims_call_result_request_destroy, req);
 
     DBG("Hanging up return %d", id);

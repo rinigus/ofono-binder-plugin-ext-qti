@@ -1338,19 +1338,23 @@ qti_radio_ext_dial(
         number, clir);
 }
 
+typedef struct qti_radio_ext_answer_request {
+  gint32 call_type RADIO_ALIGNED(4);
+  gint32 presentation RADIO_ALIGNED(4);
+  gint32 mode RADIO_ALIGNED(4);
+} RADIO_ALIGNED(8) QtiRadioAnswerReq;
+
 static
 void
 qti_radio_ext_answer_args(
     GBinderWriter* args,
     va_list va)
 {
-    gint32 call_type = va_arg(va, gint32);
-    gint32 presentation = va_arg(va, gint32);
-    gint32 mode = va_arg(va, gint32);
-
-    gbinder_writer_append_int32(args, call_type);
-    gbinder_writer_append_int32(args, presentation);
-    gbinder_writer_append_int32(args, mode);
+    QtiRadioAnswerReq req;
+    req.call_type = va_arg(va, gint32);
+    req.presentation = va_arg(va, gint32);
+    req.mode = va_arg(va, gint32);
+    gbinder_writer_append_parcelable(args, &req, sizeof(req));
 }
 
 guint
@@ -1374,70 +1378,108 @@ qti_radio_ext_answer(
 static
 void
 qti_radio_ext_hangup_args(
-    GBinderWriter* args,
+    GBinderWriter* writer,
     va_list va)
 {
-    gint32 call_id = va_arg(va, gint32);
+    guint call_id = va_arg(va, guint);
+    BINDER_EXT_CALL_HANGUP_REASON reason = va_arg(va, BINDER_EXT_CALL_HANGUP_REASON);
+    BINDER_EXT_CALL_HANGUP_FLAGS flags = va_arg(va, BINDER_EXT_CALL_HANGUP_FLAGS);
 
-    static const GBinderWriterField qti_radio_hangup_request_info_f[] = {
-        GBINDER_WRITER_FIELD_HIDL_STRING
-            (QtiRadioHangupRequestInfo, conn_uri),
-        GBINDER_WRITER_FIELD_HIDL_VEC_BYTE
-            (QtiRadioHangupRequestInfo, fail_cause_response.errorinfo), // we are not going to use this, so byte is fine
-        GBINDER_WRITER_FIELD_HIDL_STRING
-            (QtiRadioHangupRequestInfo, fail_cause_response.network_error_string),
-        GBINDER_WRITER_FIELD_HIDL_STRING
-            (QtiRadioHangupRequestInfo, fail_cause_response.error_details.error_string),
-        GBINDER_WRITER_FIELD_END()
-    };
+    gint32 initial_size;
 
-    static const GBinderWriterType qti_radio_hangup_request_info_t = {
-        GBINDER_WRITER_STRUCT_NAME_AND_SIZE(QtiRadioHangupRequestInfo),
-        qti_radio_hangup_request_info_f
-    };
+    /* Non-null parcelable */
+    gbinder_writer_append_int32(writer, 1);
+    initial_size = gbinder_writer_bytes_written(writer);
+    /* Dummy parcelable size, replaced at the end */
+    gbinder_writer_append_int32(writer, 0);
 
-    QtiRadioHangupRequestInfo* hangup_request_writer = gbinder_writer_new0(args, QtiRadioHangupRequestInfo);
+    gbinder_writer_append_int32(writer, call_id);
+    gbinder_writer_append_bool(writer, FALSE); // multiparty
+    gbinder_writer_append_string16(writer, NULL); // connUri
+    gbinder_writer_append_int32(writer, 0); // conf_id
 
-    // empty vec
-    GBinderHidlVec* empty_vec = gbinder_writer_new0(args, GBinderHidlVec);
+    // parcelable for failCauseResponse
+    gint32 initial_size_failCause;
+    gbinder_writer_append_int32(writer, 1);
+    initial_size_failCause = gbinder_writer_bytes_written(writer);
+    /* Dummy parcelable size, replaced at the end */
+    gbinder_writer_append_int32(writer, 0);
 
-    hangup_request_writer->conn_index = call_id;
-    hangup_request_writer->has_multi_party = FALSE;
-    hangup_request_writer->has_fail_cause_response = FALSE;
-    hangup_request_writer->multi_party = FALSE;
-    hangup_request_writer->conf_id = 0;
+    gbinder_writer_append_int32(writer, 0x1f6); // USER_REJECT:I = 0x1f6
+    gbinder_writer_append_bytes(writer, NULL, 0); // errorInfo
+    gbinder_writer_append_string16(writer, NULL); // networkErrorString
+    gbinder_writer_append_bool(writer, FALSE); // hasErrorDetails
+    gbinder_writer_append_int32(writer, 0); // SipErrorInfo parcelable is empty
 
-    hangup_request_writer->fail_cause_response.errorinfo.count = 0;
-    hangup_request_writer->fail_cause_response.errorinfo.data.ptr = empty_vec;
-    hangup_request_writer->fail_cause_response.errorinfo.owns_buffer = TRUE;
+    /* Overwrite parcelable size for failCauseResponse */
+    gbinder_writer_overwrite_int32(writer, initial_size_failCause,
+        gbinder_writer_bytes_written(writer) - initial_size_failCause);
 
-    hangup_request_writer->fail_cause_response.fail_cause = 0;
-    hangup_request_writer->fail_cause_response.has_error_details = FALSE;
+    /* Overwrite parcelable size */
+    gbinder_writer_overwrite_int32(writer, initial_size,
+        gbinder_writer_bytes_written(writer) - initial_size);
 
-    hangup_request_writer->fail_cause_response.error_details.error_code = 0;
+    // static const GBinderWriterField qti_radio_hangup_request_info_f[] = {
+    //     GBINDER_WRITER_FIELD_HIDL_STRING
+    //         (QtiRadioHangupRequestInfo, conn_uri),
+    //     GBINDER_WRITER_FIELD_HIDL_VEC_BYTE
+    //         (QtiRadioHangupRequestInfo, fail_cause_response.errorinfo), // we are not going to use this, so byte is fine
+    //     GBINDER_WRITER_FIELD_HIDL_STRING
+    //         (QtiRadioHangupRequestInfo, fail_cause_response.network_error_string),
+    //     GBINDER_WRITER_FIELD_HIDL_STRING
+    //         (QtiRadioHangupRequestInfo, fail_cause_response.error_details.error_string),
+    //     GBINDER_WRITER_FIELD_END()
+    // };
 
-    binder_copy_hidl_string(args, &hangup_request_writer->conn_uri, NULL);
-    binder_copy_hidl_string(args, &hangup_request_writer->fail_cause_response.network_error_string, NULL);
-    binder_copy_hidl_string(args, &hangup_request_writer->fail_cause_response.error_details.error_string, NULL);
+    // static const GBinderWriterType qti_radio_hangup_request_info_t = {
+    //     GBINDER_WRITER_STRUCT_NAME_AND_SIZE(QtiRadioHangupRequestInfo),
+    //     qti_radio_hangup_request_info_f
+    // };
 
-    gbinder_writer_append_struct(args, hangup_request_writer,
-            &qti_radio_hangup_request_info_t, NULL);
+    // QtiRadioHangupRequestInfo* hangup_request_writer = gbinder_writer_new0(args, QtiRadioHangupRequestInfo);
+
+    // // empty vec
+    // GBinderHidlVec* empty_vec = gbinder_writer_new0(args, GBinderHidlVec);
+
+    // hangup_request_writer->conn_index = call_id;
+    // hangup_request_writer->has_multi_party = FALSE;
+    // hangup_request_writer->has_fail_cause_response = FALSE;
+    // hangup_request_writer->multi_party = FALSE;
+    // hangup_request_writer->conf_id = 0;
+
+    // hangup_request_writer->fail_cause_response.errorinfo.count = 0;
+    // hangup_request_writer->fail_cause_response.errorinfo.data.ptr = empty_vec;
+    // hangup_request_writer->fail_cause_response.errorinfo.owns_buffer = TRUE;
+
+    // hangup_request_writer->fail_cause_response.fail_cause = 0;
+    // hangup_request_writer->fail_cause_response.has_error_details = FALSE;
+
+    // hangup_request_writer->fail_cause_response.error_details.error_code = 0;
+
+    // binder_copy_hidl_string(args, &hangup_request_writer->conn_uri, NULL);
+    // binder_copy_hidl_string(args, &hangup_request_writer->fail_cause_response.network_error_string, NULL);
+    // binder_copy_hidl_string(args, &hangup_request_writer->fail_cause_response.error_details.error_string, NULL);
+
+    // gbinder_writer_append_struct(args, hangup_request_writer,
+    //         &qti_radio_hangup_request_info_t, NULL);
 }
 
 guint
 qti_radio_ext_hangup(
     QtiRadioExt* self,
     guint call_id,
+    BINDER_EXT_CALL_HANGUP_REASON reason,
+    BINDER_EXT_CALL_HANGUP_FLAGS flags,
     QtiRadioExtResultFunc complete,
     GDestroyNotify destroy,
     void* user_data)
 {
     return qti_radio_ext_result_request_submit(self,
-        QTI_RADIO_REQ_HANGUP_1_2,
-        QTI_RADIO_RESP_HANGUP_1_2,
+        QTI_RADIO_REQ_HANGUP,
+        QTI_RADIO_RESP_HANGUP,
         qti_radio_ext_hangup_args,
         complete, destroy, user_data,
-        call_id);
+        call_id, reason, flags);
 }
 
 static

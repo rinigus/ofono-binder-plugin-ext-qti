@@ -111,6 +111,8 @@ guint
 qti_radio_ext_hangup(
     QtiRadioExt* self,
     guint call_id,
+    BINDER_EXT_CALL_HANGUP_REASON reason,
+    BINDER_EXT_CALL_HANGUP_FLAGS flags,
     QtiRadioExtResultFunc complete,
     GDestroyNotify destroy,
     void* user_data);
