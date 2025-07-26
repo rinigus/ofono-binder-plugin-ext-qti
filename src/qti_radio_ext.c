@@ -196,13 +196,13 @@ qti_radio_ext_ind_name(
     switch (ind) {
 #define QTI_RADIO_IND_(code, name, NAME) \
         case QTI_RADIO_IND_##NAME: return #name;
-    QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
-    QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
-    QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
+    // QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
+    // QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
+    // QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
     QTI_RADIO_IND_AIDL(QTI_RADIO_IND_)
 #undef QTI_RADIO_IND_
     }
-    return NULL;
+    return "???";
 }
 
 static
@@ -247,6 +247,37 @@ qti_radio_ext_log_resp(
 
     gutil_log(log, level, "RESP: %s > [%08x] %u %s",
         self->slot, serial, code, name ? name : "???");
+}
+
+static
+gsize
+binder_read_parcelable_size(
+    GBinderReader* reader)
+{
+    /* Read a single AIDL parcelable header and return inner data size */
+    guint32 non_null = 0, payload_size = 0;
+    if (gbinder_reader_read_uint32(reader, &non_null) && non_null &&
+        gbinder_reader_read_uint32(reader, &payload_size) &&
+        payload_size >= sizeof(payload_size)) {
+
+        return payload_size - sizeof(payload_size);
+    }
+    return 0;
+}
+
+static
+void
+binder_skip_parcelable_end(
+    GBinderReader* reader,
+    gsize parcel_size,
+    gsize initial_size)
+{
+    gsize data_read;
+    data_read = gbinder_reader_bytes_read(reader) - initial_size;
+    while (data_read < parcel_size) {
+        gbinder_reader_read_uint32(reader, NULL);
+        data_read += sizeof(guint32);
+    }
 }
 
 static
@@ -466,37 +497,6 @@ qti_ims_call_info_new(const AIDLCallInfo* info)
     return dest;
 }
 
-static
-gsize
-binder_read_parcelable_size(
-    GBinderReader* reader)
-{
-    /* Read a single AIDL parcelable header and return inner data size */
-    guint32 non_null = 0, payload_size = 0;
-    if (gbinder_reader_read_uint32(reader, &non_null) && non_null &&
-        gbinder_reader_read_uint32(reader, &payload_size) &&
-        payload_size >= sizeof(payload_size)) {
-
-        return payload_size - sizeof(payload_size);
-    }
-    return 0;
-}
-
-static
-void
-binder_skip_parcelable_end(
-    GBinderReader* reader,
-    gsize parcel_size,
-    gsize initial_size)
-{
-    gsize data_read;
-    data_read = gbinder_reader_bytes_read(reader) - initial_size;
-    while (data_read < parcel_size) {
-        gbinder_reader_read_uint32(reader, NULL);
-        data_read += sizeof(guint32);
-    }
-}
-
 
 static
 gboolean
@@ -628,6 +628,24 @@ qti_radio_ext_handle_call_state_indication(
         g_ptr_array_free(call_info_ptr, TRUE);
 }
 
+static
+void
+qti_radio_ext_handle_vops_indication(
+    QtiRadioExt* self,
+    const GBinderReader* args)
+{
+    GBinderReader reader;
+    gbinder_reader_copy(&reader, args);
+
+    gint32 vopsEnabled;
+    gboolean success = gbinder_reader_read_uint32(&reader, &vopsEnabled);
+    if (success) {
+        DBG("VOPS vopsEnabled=%d [TODO - LINK WITH oFono]", vopsEnabled);
+    } else {
+        DBG("Failed to parse VOPS indication");
+    }
+}
+
 /*
 typedef struct qti_radio_incoming_ims_sms {
     GBinderHidlString format RADIO_ALIGNED(8);
@@ -686,53 +704,57 @@ qti_radio_ext_indication(
     qti_radio_ext_log_ind(self, code);
     qti_radio_ext_dump_data(&args);
 
-    if (g_str_equal(iface, QTI_RADIO_INDICATION_1_0)) {
+    // if (g_str_equal(iface, QTI_RADIO_INDICATION_1_0)) {
+    //     switch(code) {
+    //     case QTI_RADIO_IND_REG_STATE_INDICATION:
+    //         qti_radio_ext_handle_ims_reg_status_report(self, &args);
+    //         return NULL;
+    //     case QTI_RADIO_IND_CALL_STATE_INDICATION:
+    //         qti_radio_ext_handle_call_state_indication(self, &args);
+    //         return NULL;
+    //     case QTI_RADIO_IND_RING_INDICATION:
+    //         g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_RING], 0);
+    //         return NULL;
+    //     }
+    // } else if (g_str_equal(iface, QTI_RADIO_INDICATION_1_1)) {
+    //     switch(code) {
+    //     case QTI_RADIO_IND_CALL_STATE_INDICATION_1_1:
+    //         qti_radio_ext_handle_call_state_indication(self, &args);
+    //         return NULL;
+    //     }
+    // } else if (g_str_equal(iface, QTI_RADIO_INDICATION_1_2)) {
+    //     switch(code) {
+    //     case QTI_RADIO_IND_CALL_STATE_INDICATION_1_2:
+    //         qti_radio_ext_handle_call_state_indication(self, &args);
+    //         return NULL;
+    //     case QTI_RADIO_IND_SMS_STATUS_REPORT_INDICATION:
+    //         DBG("SMS status report indication");
+    //         return NULL;
+    //     case QTI_RADIO_IND_INCOMING_SMS_INDICATION:
+    //         qti_radio_ext_handle_incoming_sms_indication(self, &args);
+    //         return NULL;
+    //     }
+    // }
+
+    if (g_str_equal(iface, QTI_RADIO_INDICATION_AIDL)) {
         switch(code) {
-        case QTI_RADIO_IND_REG_STATE_INDICATION:
-            qti_radio_ext_handle_ims_reg_status_report(self, &args);
-            return NULL;
         case QTI_RADIO_IND_CALL_STATE_INDICATION:
             qti_radio_ext_handle_call_state_indication(self, &args);
             return NULL;
         case QTI_RADIO_IND_RING_INDICATION:
             g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_RING], 0);
             return NULL;
-        }
-    } else if (g_str_equal(iface, QTI_RADIO_INDICATION_1_1)) {
-        switch(code) {
-        case QTI_RADIO_IND_CALL_STATE_INDICATION_1_1:
-            qti_radio_ext_handle_call_state_indication(self, &args);
-            return NULL;
-        }
-    } else if (g_str_equal(iface, QTI_RADIO_INDICATION_1_2)) {
-        switch(code) {
-        case QTI_RADIO_IND_CALL_STATE_INDICATION_1_2:
-            qti_radio_ext_handle_call_state_indication(self, &args);
-            return NULL;
-        case QTI_RADIO_IND_SMS_STATUS_REPORT_INDICATION:
-            DBG("SMS status report indication");
-            return NULL;
-        case QTI_RADIO_IND_INCOMING_SMS_INDICATION:
-            qti_radio_ext_handle_incoming_sms_indication(self, &args);
-            return NULL;
-        }
-    } else if (g_str_equal(iface, QTI_RADIO_INDICATION_AIDL)) {
-        switch(code) {
         case QTI_RADIO_IND_REG_STATE_INDICATION:
             qti_radio_ext_handle_ims_reg_status_report(self, &args);
             return NULL;
-        case QTI_RADIO_IND_RING_INDICATION:
-            g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_RING], 0);
-            return NULL;
-        case QTI_RADIO_IND_CALL_STATE_INDICATION:
-            qti_radio_ext_handle_call_state_indication(self, &args);
-            return NULL;
-        case QTI_RADIO_IND_CALL_STATE_INDICATION_1_2:
-            qti_radio_ext_handle_call_state_indication(self, &args);
+        case QTI_RADIO_IND_VOPS_INDICATION:
+            qti_radio_ext_handle_vops_indication(self, &args);
             return NULL;
         default:
-          DBG("Code ignored: %d", code);
+          DBG("Code ignored: %#x -> %s", code, qti_radio_ext_ind_name(code));
         }
+    } else {
+      DBG("Unknown iface: %s", iface);
     }
 
     return NULL;

@@ -75,23 +75,23 @@ typedef enum qti_radio_reg_state {
     QTI_RADIO_REG_STATE_FAILED_TO_READ = -1 // extra state to tag failed read
 } QTI_RADIO_REG_STATE;
 
-/*
-enum StatusType : int32_t {
-    STATUS_DISABLED,
-    STATUS_PARTIALLY_ENABLED,
-    STATUS_ENABLED,
-    STATUS_NOT_SUPPORTED,
-    STATUS_INVALID,
-};
-*/
+// /*
+// enum StatusType : int32_t {
+//     STATUS_DISABLED,
+//     STATUS_PARTIALLY_ENABLED,
+//     STATUS_ENABLED,
+//     STATUS_NOT_SUPPORTED,
+//     STATUS_INVALID,
+// };
+// */
 
-typedef enum qti_radio_status {
-    QTI_RADIO_STATUS_DISABLED = 0,
-    QTI_RADIO_STATUS_PARTIALLY_ENABLED = 1,
-    QTI_RADIO_STATUS_ENABLED = 2,
-    QTI_RADIO_STATUS_NOT_SUPPORTED = 3,
-    QTI_RADIO_STATUS_INVALID = 4,
-} QTI_RADIO_STATUS;
+// typedef enum qti_radio_status {
+//     QTI_RADIO_STATUS_DISABLED = 0,
+//     QTI_RADIO_STATUS_PARTIALLY_ENABLED = 1,
+//     QTI_RADIO_STATUS_ENABLED = 2,
+//     QTI_RADIO_STATUS_NOT_SUPPORTED = 3,
+//     QTI_RADIO_STATUS_INVALID = 4,
+// } QTI_RADIO_STATUS;
 
 /*
 enum ServiceClassStatus : int32_t {
@@ -102,9 +102,9 @@ enum ServiceClassStatus : int32_t {
 */
 
 typedef enum qti_radio_service_status {
-    QTI_RADIO_SERVICE_STATUS_DISABLED = 0,
-    QTI_RADIO_SERVICE_STATUS_ENABLED = 1,
-    QTI_RADIO_SERVICE_STATUS_INVALID = 2,
+    QTI_RADIO_SERVICE_STATUS_DISABLED = 1,
+    QTI_RADIO_SERVICE_STATUS_ENABLED = 2,
+    QTI_RADIO_SERVICE_STATUS_INVALID = 0,
 } QTI_RADIO_SERVICE_STATUS;
 
 /*
@@ -142,10 +142,10 @@ enum IpPresentation : int32_t {
 */
 
 typedef enum qti_radio_ip_presentation {
-    QTI_RADIO_IP_PRESENTATION_NUM_ALLOWED = 0,
-    QTI_RADIO_IP_PRESENTATION_NUM_RESTRICTED = 1,
-    QTI_RADIO_IP_PRESENTATION_NUM_DEFAULT = 2,
-    QTI_RADIO_IP_PRESENTATION_INVALID = 3,
+    QTI_RADIO_IP_PRESENTATION_NUM_ALLOWED = 1,
+    QTI_RADIO_IP_PRESENTATION_NUM_RESTRICTED = 2,
+    QTI_RADIO_IP_PRESENTATION_NUM_DEFAULT = 3,
+    QTI_RADIO_IP_PRESENTATION_INVALID = 0,
 } QTI_RADIO_IP_PRESENTATION;
 
 /*
@@ -168,19 +168,20 @@ enum CallType : int32_t {
 */
 
 typedef enum qti_radio_call_type {
-    QTI_RADIO_CALL_TYPE_VOICE = 0,
-    QTI_RADIO_CALL_TYPE_VT_TX = 1,
-    QTI_RADIO_CALL_TYPE_VT_RX = 2,
-    QTI_RADIO_CALL_TYPE_VT = 3,
-    QTI_RADIO_CALL_TYPE_VT_NODIR = 4,
-    QTI_RADIO_CALL_TYPE_CS_VS_TX = 5,
-    QTI_RADIO_CALL_TYPE_CS_VS_RX = 6,
-    QTI_RADIO_CALL_TYPE_PS_VS_TX = 7,
-    QTI_RADIO_CALL_TYPE_PS_VS_RX = 8,
-    QTI_RADIO_CALL_TYPE_UNKNOWN = 9,
-    QTI_RADIO_CALL_TYPE_SMS = 10,
-    QTI_RADIO_CALL_TYPE_UT = 11,
-    QTI_RADIO_CALL_TYPE_INVALID = 12,
+    QTI_RADIO_CALL_TYPE_VOICE = 1,
+    QTI_RADIO_CALL_TYPE_VT_TX = 2,
+    QTI_RADIO_CALL_TYPE_VT_RX = 3,
+    QTI_RADIO_CALL_TYPE_VT = 4,
+    QTI_RADIO_CALL_TYPE_VT_NODIR = 5,
+    QTI_RADIO_CALL_TYPE_CS_VS_TX = 6,
+    QTI_RADIO_CALL_TYPE_CS_VS_RX = 7,
+    QTI_RADIO_CALL_TYPE_PS_VS_TX = 8,
+    QTI_RADIO_CALL_TYPE_PS_VS_RX = 9,
+    QTI_RADIO_CALL_TYPE_UNKNOWN = 0,
+    QTI_RADIO_CALL_TYPE_SMS = 0xa,
+    QTI_RADIO_CALL_TYPE_UT = 0xb,
+    QTI_RADIO_CALL_TYPE_USSD = 0xc,
+    QTI_RADIO_CALL_TYPE_CALLCOMPOSER = 0xd,
 } QTI_RADIO_CALL_TYPE;
 
 /*
@@ -196,12 +197,12 @@ enum CallDomain : int32_t {
 */
 
 typedef enum qti_radio_call_domain {
-    QTI_RADIO_CALL_DOMAIN_UNKNOWN = 0,
-    QTI_RADIO_CALL_DOMAIN_CS = 1,
-    QTI_RADIO_CALL_DOMAIN_PS = 2,
-    QTI_RADIO_CALL_DOMAIN_AUTOMATIC = 3,
-    QTI_RADIO_CALL_DOMAIN_NOT_SET = 4,
-    QTI_RADIO_CALL_DOMAIN_INVALID = 5,
+    QTI_RADIO_CALL_DOMAIN_UNKNOWN = 1,
+    QTI_RADIO_CALL_DOMAIN_CS = 2,
+    QTI_RADIO_CALL_DOMAIN_PS = 3,
+    QTI_RADIO_CALL_DOMAIN_AUTOMATIC = 4,
+    QTI_RADIO_CALL_DOMAIN_NOT_SET = 5,
+    QTI_RADIO_CALL_DOMAIN_INVALID = 0,
 } QTI_RADIO_CALL_DOMAIN;
 
 /*
@@ -213,9 +214,9 @@ enum RttMode : int32_t {
 */
 
 typedef enum qti_radio_rtt_mode {
-    QTI_RADIO_RTT_MODE_DISABLED = 0,
-    QTI_RADIO_RTT_MODE_FULL = 1,
-    QTI_RADIO_RTT_MODE_INVALID = 2,
+    QTI_RADIO_RTT_MODE_DISABLED = 1,
+    QTI_RADIO_RTT_MODE_FULL = 2,
+    QTI_RADIO_RTT_MODE_INVALID = 0,
 } QTI_RADIO_RTT_MODE;
 
 
@@ -238,10 +239,11 @@ enum ImsSmsSendStatusResult : int32_t {
 */
 
 typedef enum qti_radio_ims_sms_send_status_result {
-    QTI_RADIO_SEND_STATUS_OK = 0,
-    QTI_RADIO_SEND_STATUS_ERROR = 1,
-    QTI_RADIO_SEND_STATUS_ERROR_RETRY = 2,
-    QTI_RADIO_SEND_STATUS_ERROR_FALLBACK = 3,
+    QTI_RADIO_SEND_STATUS_OK = 1,
+    QTI_RADIO_SEND_STATUS_ERROR = 2,
+    QTI_RADIO_SEND_STATUS_ERROR_RETRY = 3,
+    QTI_RADIO_SEND_STATUS_ERROR_FALLBACK = 4,
+    QTI_RADIO_SEND_STATUS_INVALID = 0,
 } QTI_RADIO_IMS_SMS_SEND_STATUS_RESULT;
 
 /*
@@ -266,14 +268,32 @@ enum ImsSmsSendFailureReason : int32_t {
 */
 
 typedef enum qti_radio_ims_sms_send_failure_reason {
-    QTI_RADIO_RESULT_ERROR_NONE = 0,
-    QTI_RADIO_RESULT_ERROR_GENERIC_FAILURE = 1,
-    QTI_RADIO_RESULT_ERROR_RADIO_OFF = 2,
-    QTI_RADIO_RESULT_ERROR_NULL_PDU = 3,
-    QTI_RADIO_RESULT_ERROR_NO_SERVICE = 4,
-    QTI_RADIO_RESULT_ERROR_LIMIT_EXCEEDED = 5,
-    QTI_RADIO_RESULT_ERROR_SHORT_CODE_NOT_ALLOWED = 6,
-    QTI_RADIO_RESULT_ERROR_SHORT_CODE_NEVER_ALLOWED = 7,
+    QTI_RADIO_RESULT_ERROR_INVALID = 0,
+    QTI_RADIO_RESULT_ERROR_NONE = 1,
+    QTI_RADIO_RESULT_ERROR_GENERIC_FAILURE = 2,
+    QTI_RADIO_RESULT_ERROR_RADIO_OFF = 3,
+    QTI_RADIO_RESULT_ERROR_NULL_PDU = 4,
+    QTI_RADIO_RESULT_ERROR_NO_SERVICE = 5,
+    QTI_RADIO_RESULT_ERROR_LIMIT_EXCEEDED = 6,
+    QTI_RADIO_RESULT_ERROR_SHORT_CODE_NOT_ALLOWED = 7,
+    QTI_RADIO_RESULT_ERROR_SHORT_CODE_NEVER_ALLOWED = 8,
+    QTI_RADIO_RESULT_ERROR_FDN_CHECK_FAILURE = 9,
+    QTI_RADIO_RESULT_ERROR_RADIO_NOT_AVAILABLE = 0xa,
+    QTI_RADIO_RESULT_ERROR_NETWORK_REJECT = 0xb,
+    QTI_RADIO_RESULT_ERROR_INVALID_ARGUMENTS = 0xc,
+    QTI_RADIO_RESULT_ERROR_INVALID_STATE = 0xd,
+    QTI_RADIO_RESULT_ERROR_NO_MEMORY = 0xe,
+    QTI_RADIO_RESULT_ERROR_INVALID_SMS_FORMAT = 0xf,
+    QTI_RADIO_RESULT_ERROR_SYSTEM_ERROR = 0x10,
+    QTI_RADIO_RESULT_ERROR_MODEM_ERROR = 0x11,
+    QTI_RADIO_RESULT_ERROR_NETWORK_ERROR = 0x12,
+    QTI_RADIO_RESULT_ERROR_ENCODING_ERROR = 0x13,
+    QTI_RADIO_RESULT_ERROR_INVALID_SMSC_ADDRESS = 0x14,
+    QTI_RADIO_RESULT_ERROR_OPERATION_NOT_ALLOWED = 0x15,
+    QTI_RADIO_RESULT_ERROR_INTERNAL_ERROR = 0x16,
+    QTI_RADIO_RESULT_ERROR_NO_RESOURCES = 0x17,
+    QTI_RADIO_RESULT_ERROR_CANCELLED = 0x18,
+    QTI_RADIO_RESULT_ERROR_REQUEST_NOT_SUPPORTED = 0x19,
 } QTI_RADIO_IMS_SMS_SEND_FAILURE_REASON;
 
 
@@ -287,8 +307,11 @@ enum ImsSmsDeliverStatusResult : int32_t {
 */
 
 typedef enum qti_radio_ims_sms_deliver_status_result {
-    QTI_RADIO_DELIVER_STATUS_OK = 0,
+    QTI_RADIO_DELIVER_STATUS_INVALID = 0,
     QTI_RADIO_DELIVER_STATUS_ERROR = 1,
+    QTI_RADIO_DELIVER_STATUS_OK = 2,
+    QTI_RADIO_DELIVER_STATUS_ERROR_NO_MEMORY = 3,
+    QTI_RADIO_DELIVER_STATUS_ERROR_REQUEST_NOT_SUPPORTED = 4,
 } QTI_RADIO_IMS_SMS_DELIVER_STATUS_RESULT;
 
 /*
@@ -301,8 +324,9 @@ enum ImsSmsStatusReportResult : int32_t {
 */
 
 typedef enum qti_radio_ims_sms_status_report_result {
-    QTI_RADIO_STATUS_REPORT_OK = 0,
-    QTI_RADIO_STATUS_REPORT_ERROR = 1,
+    QTI_RADIO_STATUS_REPORT_INVALID = 0,
+    QTI_RADIO_STATUS_REPORT_OK = 1,
+    QTI_RADIO_STATUS_REPORT_ERROR = 2,
 } QTI_RADIO_IMS_SMS_STATUS_REPORT_RESULT;
 
 /*
@@ -638,35 +662,80 @@ typedef enum ims_radio_resp {
 } IMS_RADIO_RESP;
 
 /* e(code, name, NAME) */
-#define QTI_RADIO_IND_1_0(e) \
-    e(1, onCallStateChanged, CALL_STATE_INDICATION) \
-    e(2, onRing, RING_INDICATION) \
-    e(3, onRingbackTone, RINGBACK_TONE_INDICATION) \
-    e(4, onRegistrationChanged, REG_STATE_INDICATION) \
-    e(5, onHandover, HANDOVER_INDICATION) \
-    e(6, onServiceStatusChanged, SVC_STATUS_INDICATION) \
-    e(7, radioStateChanged, RADIO_STATE_CHANGED_INDICATION)
+// #define QTI_RADIO_IND_1_0(e) \
+//     e(1, onCallStateChanged, CALL_STATE_INDICATION) \
+//     e(2, onRing, RING_INDICATION) \
+//     e(3, onRingbackTone, RINGBACK_TONE_INDICATION) \
+//     e(4, onRegistrationChanged, REG_STATE_INDICATION) \
+//     e(5, onHandover, HANDOVER_INDICATION) \
+//     e(6, onServiceStatusChanged, SVC_STATUS_INDICATION) \
+//     e(7, radioStateChanged, RADIO_STATE_CHANGED_INDICATION)
 
-#define QTI_RADIO_IND_1_1(e) \
-    e(23, callStateChanged_1_1, CALL_STATE_INDICATION_1_1)
+// #define QTI_RADIO_IND_1_1(e) \
+//     e(23, callStateChanged_1_1, CALL_STATE_INDICATION_1_1)
 
-#define QTI_RADIO_IND_1_2(e) \
-    e(24, callStateChanged_1_2, CALL_STATE_INDICATION_1_2) \
-    e(25, onImsSmsStatusReport, SMS_STATUS_REPORT_INDICATION) \
-    e(26, onIncomingImsSms, INCOMING_SMS_INDICATION) \
-    e(27, onVopsChanged, VOPS_CHANGED_INDICATION)
+// #define QTI_RADIO_IND_1_2(e) \
+//     e(24, callStateChanged_1_2, CALL_STATE_INDICATION_1_2) \
+//     e(25, onImsSmsStatusReport, SMS_STATUS_REPORT_INDICATION) \
+//     e(26, onIncomingImsSms, INCOMING_SMS_INDICATION) \
+//     e(27, onVopsChanged, VOPS_CHANGED_INDICATION)
 
 #define QTI_RADIO_IND_AIDL(e) \
-    e(29, onModemSupportsWfcRoamingModeConfiguration, MODEM_SUPP_WFC_ROAMING) \
-    e(36, onServiceDomainChanged, SERVICE_DOMAIN_CHANGED)
+    e(0x1, onCallStateChanged, CALL_STATE_INDICATION) \
+    e(0x2, onRing, RING_INDICATION) \
+    e(0x3, onRingbackTone, RINGBACK_TONE_INDICATION) \
+    e(0x4, onRegistrationChanged, REG_STATE_INDICATION) \
+    e(0x5, onHandover, HANDOVER_INDICATION) \
+    e(0x6, onServiceStatusChanged, SVC_STATUS_INDICATION) \
+    e(0x7, radioStateChanged, RADIO_STATE_CHANGED_INDICATION) \
+    e(0x8, onEmergencyCallBackModeChanged, ECBM_CHANGED_INDICATION) \
+    e(0x9, onTtyNotification, TTY_NOTIFICATION_INDICATION) \
+    e(0xa, onRefreshConferenceInfo, REFRESH_CONF_INFO_INDICATION) \
+    e(0xb, onRefreshViceInfo, REFRESH_VICE_INFO_INDICATION) \
+    e(0xc, onModifyCall, MODIFY_CALL_INDICATION) \
+    e(0xd, onSuppServiceNotification, SUPP_SVC_NOTIFICATION) \
+    e(0xe, onMessageWaiting, MSG_WAITING_INDICATION) \
+    e(0xf, onGeolocationInfoRequested, GEOLOCATION_REQUESTED) \
+    e(0x10, onImsSubConfigChanged, SUB_CONFIG_CHANGED) \
+    e(0x11, onParticipantStatusInfo, PARTICIPANT_STATUS_INFO) \
+    e(0x12, onRegistrationBlockStatus, REG_BLOCK_STATUS) \
+    e(0x13, onRttMessageReceived, RTT_MSG_RECEIVED) \
+    e(0x14, onVoWiFiCallQuality, VOWIFI_CALL_QUALITY) \
+    e(0x15, onSupplementaryServiceIndication, SUPP_SVC_INDICATION) \
+    e(0x16, onSmsSendStatusReport, SMS_SEND_STATUS) \
+    e(0x17, onIncomingSms, INCOMING_SMS) \
+    e(0x18, onVopsChanged, VOPS_INDICATION) \
+    e(0x19, onIncomingCallAutoRejected, AUTO_REJECTED_CALL) \
+    e(0x1a, onVoiceInfoChanged, VOICE_INFO_CHANGED) \
+    e(0x1b, onMultiIdentityRegistrationStatusChange, MULTI_ID_REG_STATUS_CHANGED) \
+    e(0x1c, onMultiIdentityInfoPending, MULTI_ID_INFO_PENDING) \
+    e(0x1d, onModemSupportsWfcRoamingModeConfiguration, MODEM_SUPP_WFC_ROAMING) \
+    e(0x1e, onUssdMessageFailed, USSD_MSG_FAILED) \
+    e(0x1f, onUssdReceived, USSD_RECEIVED) \
+    e(0x20, onCallComposerInfoAvailable, CALL_COMPOSER_INFO) \
+    e(0x21, onIncomingCallComposerCallAutoRejected, COMPOSER_CALL_AUTO_REJECTED) \
+    e(0x22, onRetrievingGeoLocationDataStatus, GEOLOCATION_STATUS) \
+    e(0x23, onSipDtmfReceived, SIP_DTMF_RECEIVED) \
+    e(0x24, onServiceDomainChanged, SERVICE_DOMAIN_CHANGED) \
+    e(0x25, onSmsCallBackModeChanged, SMS_CB_MODE_CHANGED) \
+    e(0x26, onConferenceCallStateCompleted, CONF_CALL_STATE_COMPLETED) \
+    e(0x27, onIncomingDtmfStart, INCOMING_DTMF_START) \
+    e(0x28, onIncomingDtmfStop, INCOMING_DTMF_STOP) \
+    e(0x29, onMultiSimVoiceCapabilityChanged, MULTISIM_VOICE_CAPABILITY_CHANGED) \
+    e(0x2a, onPreAlertingCallInfoAvailable, PRE_ALERTING_CALL_INFO) \
+    e(0x2b, onIncomingCallAutoRejected2, AUTO_REJECTED_CALL_2) \
+    e(0x2c, onCiWlanNotification, CI_WLAN_NOTIFICATION) \
+    e(0x2d, onSrtpEncryptionStatusChanged, SRTP_ENCRYPTION_STATUS) \
+    e(0xffffff, getInterfaceVersion, GET_INTERFACE_VERSION) \
+    e(0xfffffe, getInterfaceHash, GET_INTERFACE_HASH)
 
 
 typedef enum ims_radio_ind {
     /* vendor.mediatek.hardware.qtiradioex@3.0::IImsRadioIndication */
 #define QTI_RADIO_IND_(code, name, NAME) QTI_RADIO_IND_##NAME = code,
-    QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
-    QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
-    QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
+    // QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
+    // QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
+    // QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
     QTI_RADIO_IND_AIDL(QTI_RADIO_IND_)
 #undef QTI_RADIO_IND_
 } IMS_RADIO_IND;
