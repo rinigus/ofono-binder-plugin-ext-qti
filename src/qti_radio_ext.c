@@ -1395,6 +1395,14 @@ qti_radio_ext_hangup_args(
     gint32 initial_size_failCause;
     gint32 initial_size_sipErrorInfo;
 
+    gint32 failCauseReason; // Normal call end BINDER_EXT_CALL_HANGUP_TERMINATE
+    if (reason == BINDER_EXT_CALL_HANGUP_IGNORE)
+        failCauseReason = 519; // SIP_REQUEST_TIMEOUT
+    else if (reason == BINDER_EXT_CALL_HANGUP_REJECT)
+        failCauseReason = 502; // USER_REJECT
+    else // BINDER_EXT_CALL_HANGUP_TERMINATE
+      failCauseReason = 2; // NORMAL
+
     /* Non-null parcelable */
     gbinder_writer_append_int32(writer, 1);
     initial_size = gbinder_writer_bytes_written(writer);
@@ -1412,7 +1420,7 @@ qti_radio_ext_hangup_args(
     /* Dummy parcelable size, replaced at the end */
     gbinder_writer_append_int32(writer, 0);
 
-    gbinder_writer_append_int32(writer, 601); // failReason
+    gbinder_writer_append_int32(writer, failCauseReason);
     gbinder_writer_append_int32(writer, 0); // errorInfo byte array set to empty one (0 bytes)
     gbinder_writer_append_string16(writer, ""); // networkErrorString
     gbinder_writer_append_bool(writer, FALSE); // hasErrorDetails
