@@ -364,11 +364,11 @@ qti_radio_ext_read_ims_reg_status_info(
     }
 
     if (success) {
-      DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
-          " error_code:%d datasz: %d\n"
-          " uri:%s error_msg:%s",
-          self->slot, state, radio_tech, error_code, datasz, uri ? uri : "",
-          error_message ? error_message : "");
+        DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
+            " error_code:%d datasz: %d\n"
+            " uri:%s error_msg:%s",
+            self->slot, state, radio_tech, error_code, datasz, uri ? uri : "",
+            error_message ? error_message : "");
     }
 
     g_free(error_message);
@@ -601,12 +601,18 @@ qti_radio_ext_handle_call_state_indication(
         if (!success) {
           DBG("Failed to parse CallInfo %d", success);
         } else {
-            DBG("state=%d index=%d toa=%d inMpty=%d isMT=%d\n"
-                "number=%s name=%s historyInfo=%s diversionInfo=%s", info.state,
-                info.index, info.toa, info.isMpty, info.isMT,
-                info.number ? info.number : "",
-                info.name ? info.name : "",
-                info.historyInfo ? info.historyInfo : "",
+            DBG("state=%d index=%d toa=%d isMpty=%d\n"
+                "isMT=%d als=%d isVoice=%d isVoicePrivacy=%d\n"
+                "number=%s numberPresentation=%d name=%s namePresentation=%d\n"
+                "isEncrypted=%d isCalledPartyRinging=%d historyInfo=%s isVideoConfSupported=%d\n"
+                "tirMode=%d isPreparatory=%d diversionInfo=%s",
+                info.state, info.index, info.toa, info.isMpty,
+                info.isMT, info.als, info.isVoice, info.isVoicePrivacy,
+                info.number ? info.number : "", info.numberPresentation,
+                info.name ? info.name : "", info.namePresentation,
+                info.isEncrypted, info.isCalledPartyRinging,
+                info.historyInfo ? info.historyInfo : "", info.isVideoConfSupported,
+                info.tirMode, info.isPreparatory,
                 info.diversionInfo ? info.diversionInfo : ""
             );
 
@@ -1386,6 +1392,8 @@ qti_radio_ext_hangup_args(
     BINDER_EXT_CALL_HANGUP_FLAGS flags = va_arg(va, BINDER_EXT_CALL_HANGUP_FLAGS);
 
     gint32 initial_size;
+    gint32 initial_size_failCause;
+    gint32 initial_size_sipErrorInfo;
 
     /* Non-null parcelable */
     gbinder_writer_append_int32(writer, 1);
@@ -1394,22 +1402,32 @@ qti_radio_ext_hangup_args(
     gbinder_writer_append_int32(writer, 0);
 
     gbinder_writer_append_int32(writer, call_id);
-    gbinder_writer_append_bool(writer, FALSE); // multiparty
-    gbinder_writer_append_string16(writer, NULL); // connUri
-    gbinder_writer_append_int32(writer, 0); // conf_id
+    gbinder_writer_append_bool(writer, FALSE);     // multiparty
+    gbinder_writer_append_string16(writer, "");    //connUri
+    gbinder_writer_append_int32(writer, G_MAXINT); // conf_id
 
     // parcelable for failCauseResponse
-    gint32 initial_size_failCause;
     gbinder_writer_append_int32(writer, 1);
     initial_size_failCause = gbinder_writer_bytes_written(writer);
     /* Dummy parcelable size, replaced at the end */
     gbinder_writer_append_int32(writer, 0);
 
-    gbinder_writer_append_int32(writer, 0x1f6); // USER_REJECT:I = 0x1f6
-    gbinder_writer_append_bytes(writer, NULL, 0); // errorInfo
-    gbinder_writer_append_string16(writer, NULL); // networkErrorString
+    gbinder_writer_append_int32(writer, 601); // failReason
+    gbinder_writer_append_int32(writer, 0); // errorInfo byte array set to empty one (0 bytes)
+    gbinder_writer_append_string16(writer, ""); // networkErrorString
     gbinder_writer_append_bool(writer, FALSE); // hasErrorDetails
-    gbinder_writer_append_int32(writer, 0); // SipErrorInfo parcelable is empty
+
+    // parcelable for SipErrorInfo
+    gbinder_writer_append_int32(writer, 1); // SipErrorInfo parcelable is empty
+    initial_size_sipErrorInfo = gbinder_writer_bytes_written(writer);
+    /* Dummy parcelable size, replaced at the end */
+    gbinder_writer_append_int32(writer, 0);
+    gbinder_writer_append_int32(writer, 0); // sip error set zero
+    gbinder_writer_append_string16(writer, ""); // networkErrorString
+
+    /* Overwrite parcelable size for SipErrorInfo */
+    gbinder_writer_overwrite_int32(writer, initial_size_sipErrorInfo,
+        gbinder_writer_bytes_written(writer) - initial_size_sipErrorInfo);
 
     /* Overwrite parcelable size for failCauseResponse */
     gbinder_writer_overwrite_int32(writer, initial_size_failCause,
