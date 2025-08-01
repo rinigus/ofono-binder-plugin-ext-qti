@@ -339,8 +339,6 @@ qti_ims_call_hangup(
     guint id = qti_radio_ext_hangup(self->radio_ext, call_id, reason, flags,
         qti_ims_call_result_response, qti_ims_call_result_request_destroy, req);
 
-    DBG("Hanging up return %d", id);
-
     if (id) {
         req->id = id;
         g_hash_table_insert(self->id_map, ID_KEY(id), ID_VALUE(id));
