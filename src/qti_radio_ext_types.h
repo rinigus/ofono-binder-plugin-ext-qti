@@ -132,19 +132,17 @@ typedef enum qti_radio_call_state {
 } QTI_RADIO_CALL_STATE;
 
 /*
-enum IpPresentation : int32_t {
-    IP_PRESENTATION_NUM_ALLOWED,
-    IP_PRESENTATION_NUM_RESTRICTED,
-    IP_PRESENTATION_NUM_DEFAULT,
-    IP_PRESENTATION_INVALID,
-};
-
+public @interface ClirMode {
+    public static final int DEFAULT = 1;
+    public static final int INVALID = 0;
+    public static final int INVOCATION = 2;
+    public static final int SUPRESSION = 3;
+}
 */
-
 typedef enum qti_radio_ip_presentation {
-    QTI_RADIO_IP_PRESENTATION_NUM_ALLOWED = 1,
-    QTI_RADIO_IP_PRESENTATION_NUM_RESTRICTED = 2,
-    QTI_RADIO_IP_PRESENTATION_NUM_DEFAULT = 3,
+    QTI_RADIO_IP_PRESENTATION_NUM_DEFAULT = 1,
+    QTI_RADIO_IP_PRESENTATION_NUM_INVOCATION = 2,
+    QTI_RADIO_IP_PRESENTATION_NUM_SUPRESSION = 3,
     QTI_RADIO_IP_PRESENTATION_INVALID = 0,
 } QTI_RADIO_IP_PRESENTATION;
 

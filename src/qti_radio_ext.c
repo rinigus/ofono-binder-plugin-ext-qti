@@ -365,7 +365,7 @@ qti_radio_ext_read_ims_reg_status_info(
 
     if (success) {
         DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
-            " error_code:%d datasz: %d\n"
+            " error_code:%d datasz: %d"
             " uri:%s error_msg:%s",
             self->slot, state, radio_tech, error_code, datasz, uri ? uri : "",
             error_message ? error_message : "");
@@ -1241,88 +1241,104 @@ binder_copy_hidl_string(
 static
 void
 qti_radio_ext_dial_args(
-    GBinderWriter* args,
+    GBinderWriter* writer,
     va_list va)
 {
     QtiRadioDialRequest* dial_request_writer;
 
     const char* number = va_arg(va, const char*);
-    //gint32 clir = va_arg(va, gint32);
+    BINDER_EXT_TOA toa = va_arg(va, BINDER_EXT_TOA);
+    BINDER_EXT_CALL_CLIR clir = va_arg(va, BINDER_EXT_CALL_CLIR);
+    BINDER_EXT_CALL_DIAL_FLAGS flags = va_arg(va, BINDER_EXT_CALL_DIAL_FLAGS);
 
-    // for some reason, clir from binder is wrong, so we use default
-    gint32 clir = RADIO_CLIR_DEFAULT;
+    gint32 initial_size;
+    gint32 initial_size_call_details;
+    gint32 initial_size_multilineinfo;
+    gint32 initial_size_redialinfo;
 
-    static const GBinderWriterField qti_radio_dial_request_f[] = {
-        GBINDER_WRITER_FIELD_HIDL_STRING
-            (QtiRadioDialRequest, address),
-        GBINDER_WRITER_FIELD_HIDL_VEC_BYTE
-            (QtiRadioDialRequest, call_details.extras),
-        GBINDER_WRITER_FIELD_HIDL_VEC_BYTE
-            (QtiRadioDialRequest, call_details.local_ability),
-        GBINDER_WRITER_FIELD_HIDL_VEC_BYTE
-            (QtiRadioDialRequest, call_details.peer_ability),
-        GBINDER_WRITER_FIELD_HIDL_STRING
-            (QtiRadioDialRequest, call_details.sip_alternate_uri),
-        GBINDER_WRITER_FIELD_END()
-    };
-    static const GBinderWriterType qti_radio_dial_request_t = {
-        GBINDER_WRITER_STRUCT_NAME_AND_SIZE(QtiRadioDialRequest),
-        qti_radio_dial_request_f
-    };
+    gint32 clir_qti = QTI_RADIO_IP_PRESENTATION_NUM_DEFAULT;
 
-    dial_request_writer = gbinder_writer_new0(args, QtiRadioDialRequest);
+    if (clir == BINDER_EXT_CALL_CLIR_INVOCATION)
+      clir_qti = QTI_RADIO_IP_PRESENTATION_NUM_INVOCATION;
+    else if (clir == BINDER_EXT_CALL_CLIR_SUPPRESSION)
+      clir_qti = QTI_RADIO_IP_PRESENTATION_NUM_SUPRESSION;
 
-    GBinderHidlVec* empty_vec1 = gbinder_writer_new0(args, GBinderHidlVec);
-    GBinderHidlVec* empty_vec2 = gbinder_writer_new0(args, GBinderHidlVec);
-    GBinderHidlVec* empty_vec3 = gbinder_writer_new0(args, GBinderHidlVec);
+    // Non-null parcelable
+    gbinder_writer_append_int32(writer, 1);
+    initial_size = gbinder_writer_bytes_written(writer);
+    // Dummy parcelable size, replaced at the end
+    gbinder_writer_append_int32(writer, 0);
 
-    dial_request_writer->clir_mode = clir;
-    switch (clir)
-    {
-    case RADIO_CLIR_SUPPRESSION:
-        dial_request_writer->presentation = QTI_RADIO_IP_PRESENTATION_NUM_RESTRICTED;
-        break;
-    default:
-        dial_request_writer->presentation = QTI_RADIO_IP_PRESENTATION_NUM_ALLOWED;
-        break;
-    }
+    gbinder_writer_append_string16(writer, number);
+    gbinder_writer_append_int32(writer, clir_qti);
 
-    dial_request_writer->call_details.call_type = QTI_RADIO_CALL_TYPE_VOICE;
-    dial_request_writer->call_details.call_domain = QTI_RADIO_CALL_DOMAIN_UNKNOWN;
-    dial_request_writer->call_details.extras_length = 0;
+    // CallDetails
+    gbinder_writer_append_int32(writer, 1);
+    initial_size_call_details = gbinder_writer_bytes_written(writer);
+    gbinder_writer_append_int32(writer, 0);
 
-    dial_request_writer->call_details.extras.count = 0;
-    dial_request_writer->call_details.extras.data.ptr = empty_vec1;
-    dial_request_writer->call_details.extras.owns_buffer = TRUE;
+    gbinder_writer_append_int32(writer, QTI_RADIO_CALL_TYPE_VOICE); // call type
+    gbinder_writer_append_int32(writer, QTI_RADIO_CALL_DOMAIN_AUTOMATIC); // call domain
 
-    dial_request_writer->call_details.local_ability.count = 0;
-    dial_request_writer->call_details.local_ability.data.ptr = empty_vec2;
-    dial_request_writer->call_details.local_ability.owns_buffer = TRUE;
+    gbinder_writer_append_int32(writer, 1); // number of extras strings
+    // string from dumped aidl transaction in LOS
+    gbinder_writer_append_string16(
+        writer, "android.telecom.extra.START_CALL_WITH_VIDEO_STATE=0");
 
-    dial_request_writer->call_details.peer_ability.count = 0;
-    dial_request_writer->call_details.peer_ability.data.ptr = empty_vec3;
-    dial_request_writer->call_details.peer_ability.owns_buffer = TRUE;
+    gbinder_writer_append_int32(writer, 0); // localAbility
+    gbinder_writer_append_int32(writer, 0); // peerAbility
 
-    dial_request_writer->call_details.call_substate = 0; // none
-    dial_request_writer->call_details.media_id = -1; // unknown
-    dial_request_writer->call_details.cause_code = 0; // none
-    dial_request_writer->call_details.rtt_mode = 0;
+    gbinder_writer_append_int32(writer, -1); // callSubstate
+    gbinder_writer_append_int32(writer, -1); // mediaId
+    gbinder_writer_append_int32(writer, -1); // causeCode
 
-    dial_request_writer->has_call_details = FALSE;
-    dial_request_writer->has_is_conference_uri = FALSE;
-    dial_request_writer->is_conference_uri = FALSE;
-    dial_request_writer->has_is_call_pull = FALSE;
-    dial_request_writer->is_call_pull = FALSE;
-    dial_request_writer->has_is_encrypted = FALSE;
-    dial_request_writer->is_encrypted = FALSE;
+    // rttMode
+    gbinder_writer_append_int32(writer,
+                                flags & BINDER_EXT_CALL_FLAG_RTT
+                                    ? QTI_RADIO_RTT_MODE_FULL
+                                    : QTI_RADIO_RTT_MODE_DISABLED);
 
-    binder_copy_hidl_string(args, &dial_request_writer->address, number);
-    binder_copy_hidl_string(args, &dial_request_writer->call_details.sip_alternate_uri, NULL);
+    gbinder_writer_append_string16(writer, ""); // sipAlternateUri
+    gbinder_writer_append_bool(writer, FALSE); // isVosSupported
 
-    gbinder_writer_append_struct(args, dial_request_writer,
-            &qti_radio_dial_request_t, NULL);
+    // write CallDetails size
+    gbinder_writer_overwrite_int32(writer, initial_size_call_details,
+        gbinder_writer_bytes_written(writer) - initial_size_call_details);
 
-    DBG("Dialing (ext) %s", number);
+    // CallDetails: done
+
+    gbinder_writer_append_bool(writer, FALSE); // isConferenceUri
+    gbinder_writer_append_bool(writer, FALSE); // isCallPull
+    gbinder_writer_append_bool(writer, FALSE); // isEncrypted
+
+    // Multiline info
+    gbinder_writer_append_int32(writer, 1);
+    initial_size_multilineinfo = gbinder_writer_bytes_written(writer);
+    gbinder_writer_append_int32(writer, 0);
+
+    gbinder_writer_append_string16(writer, ""); // msisdn
+    gbinder_writer_append_int32(writer, 0); // registrationStatus
+    gbinder_writer_append_int32(writer, 1); // linetype: maybe corresponds to primary
+
+    // write Multiline info size
+    gbinder_writer_overwrite_int32(writer, initial_size_multilineinfo,
+        gbinder_writer_bytes_written(writer) - initial_size_multilineinfo);
+
+    // RedialInfo
+    gbinder_writer_append_int32(writer, 1);
+    initial_size_redialinfo = gbinder_writer_bytes_written(writer);
+    gbinder_writer_append_int32(writer, 0);
+
+    gbinder_writer_append_int32(writer, 548); // callFailReason: default "misc"
+    gbinder_writer_append_int32(writer, 0); // callFailRadioTech: unknown?
+
+    // write RedialInfo size
+    gbinder_writer_overwrite_int32(writer, initial_size_redialinfo,
+        gbinder_writer_bytes_written(writer) - initial_size_redialinfo);
+
+    // write parcelable size
+    gbinder_writer_overwrite_int32(writer, initial_size,
+        gbinder_writer_bytes_written(writer) - initial_size);
 }
 
 guint
@@ -1341,7 +1357,7 @@ qti_radio_ext_dial(
         QTI_RADIO_RESP_DIAL,
         qti_radio_ext_dial_args,
         complete, destroy, user_data,
-        number, clir);
+        number, toa, clir, flags);
 }
 
 typedef struct qti_radio_ext_answer_request {
