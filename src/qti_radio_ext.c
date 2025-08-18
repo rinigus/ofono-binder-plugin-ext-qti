@@ -652,6 +652,48 @@ qti_radio_ext_handle_vops_indication(
     }
 }
 
+static const char*
+qti_radio_ext_service_domain_name(
+    guint32 resp)
+{
+    switch (resp) {
+    case 0:
+      return "INVALID";
+    case 1:
+      return "NO_SRV";
+    case 2:
+      return "CS_ONLY";
+    case 3:
+        return "PS_ONLY";
+    case 4:
+        return "CS_PS";
+    case 5:
+        return "CAMPED";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+static
+void
+qti_radio_ext_handle_service_domain_changed(
+    QtiRadioExt* self,
+    const GBinderReader* args)
+{
+    GBinderReader reader;
+    gbinder_reader_copy(&reader, args);
+
+    gint32 domain;
+    gboolean success = gbinder_reader_read_int32(&reader, &domain);
+    if (success) {
+      DBG("ServiceDomainChanged domain: %s (%d)",
+          qti_radio_ext_service_domain_name(domain), domain);
+    } else {
+      DBG("Failed to parse ServiceDomainChanged");
+    }
+}
+
+
 /*
 typedef struct qti_radio_incoming_ims_sms {
     GBinderHidlString format RADIO_ALIGNED(8);
@@ -755,6 +797,9 @@ qti_radio_ext_indication(
             return NULL;
         case QTI_RADIO_IND_VOPS_INDICATION:
             qti_radio_ext_handle_vops_indication(self, &args);
+            return NULL;
+        case QTI_RADIO_IND_SERVICE_DOMAIN_CHANGED:
+            qti_radio_ext_handle_service_domain_changed(self, &args);
             return NULL;
         default:
           DBG("Code ignored: %#x -> %s", code, qti_radio_ext_ind_name(code));
@@ -1460,50 +1505,6 @@ qti_radio_ext_hangup_args(
     /* Overwrite parcelable size */
     gbinder_writer_overwrite_int32(writer, initial_size,
         gbinder_writer_bytes_written(writer) - initial_size);
-
-    // static const GBinderWriterField qti_radio_hangup_request_info_f[] = {
-    //     GBINDER_WRITER_FIELD_HIDL_STRING
-    //         (QtiRadioHangupRequestInfo, conn_uri),
-    //     GBINDER_WRITER_FIELD_HIDL_VEC_BYTE
-    //         (QtiRadioHangupRequestInfo, fail_cause_response.errorinfo), // we are not going to use this, so byte is fine
-    //     GBINDER_WRITER_FIELD_HIDL_STRING
-    //         (QtiRadioHangupRequestInfo, fail_cause_response.network_error_string),
-    //     GBINDER_WRITER_FIELD_HIDL_STRING
-    //         (QtiRadioHangupRequestInfo, fail_cause_response.error_details.error_string),
-    //     GBINDER_WRITER_FIELD_END()
-    // };
-
-    // static const GBinderWriterType qti_radio_hangup_request_info_t = {
-    //     GBINDER_WRITER_STRUCT_NAME_AND_SIZE(QtiRadioHangupRequestInfo),
-    //     qti_radio_hangup_request_info_f
-    // };
-
-    // QtiRadioHangupRequestInfo* hangup_request_writer = gbinder_writer_new0(args, QtiRadioHangupRequestInfo);
-
-    // // empty vec
-    // GBinderHidlVec* empty_vec = gbinder_writer_new0(args, GBinderHidlVec);
-
-    // hangup_request_writer->conn_index = call_id;
-    // hangup_request_writer->has_multi_party = FALSE;
-    // hangup_request_writer->has_fail_cause_response = FALSE;
-    // hangup_request_writer->multi_party = FALSE;
-    // hangup_request_writer->conf_id = 0;
-
-    // hangup_request_writer->fail_cause_response.errorinfo.count = 0;
-    // hangup_request_writer->fail_cause_response.errorinfo.data.ptr = empty_vec;
-    // hangup_request_writer->fail_cause_response.errorinfo.owns_buffer = TRUE;
-
-    // hangup_request_writer->fail_cause_response.fail_cause = 0;
-    // hangup_request_writer->fail_cause_response.has_error_details = FALSE;
-
-    // hangup_request_writer->fail_cause_response.error_details.error_code = 0;
-
-    // binder_copy_hidl_string(args, &hangup_request_writer->conn_uri, NULL);
-    // binder_copy_hidl_string(args, &hangup_request_writer->fail_cause_response.network_error_string, NULL);
-    // binder_copy_hidl_string(args, &hangup_request_writer->fail_cause_response.error_details.error_string, NULL);
-
-    // gbinder_writer_append_struct(args, hangup_request_writer,
-    //         &qti_radio_hangup_request_info_t, NULL);
 }
 
 guint
