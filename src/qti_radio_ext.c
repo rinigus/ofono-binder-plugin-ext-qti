@@ -646,7 +646,7 @@ qti_radio_ext_handle_vops_indication(
     GBinderReader reader;
     gbinder_reader_copy(&reader, args);
 
-    gint32 vopsEnabled;
+    guint32 vopsEnabled;
     gboolean success = gbinder_reader_read_uint32(&reader, &vopsEnabled);
     if (success) {
         DBG("VOPS vopsEnabled=%d [TODO - LINK WITH oFono]", vopsEnabled);
@@ -656,8 +656,26 @@ qti_radio_ext_handle_vops_indication(
 }
 
 static const char*
+qti_radio_ext_radio_state_name(
+    gint32 resp)
+{
+    switch (resp) {
+    case 0:
+      return "INVALID";
+    case 1:
+      return "OFF";
+    case 2:
+      return "UNAVAILABLE";
+    case 3:
+        return "ON";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+static const char*
 qti_radio_ext_service_domain_name(
-    guint32 resp)
+    gint32 resp)
 {
     switch (resp) {
     case 0:
@@ -679,23 +697,25 @@ qti_radio_ext_service_domain_name(
 
 static
 void
-qti_radio_ext_handle_service_domain_changed(
+qti_radio_ext_handle_int32_event(
     QtiRadioExt* self,
-    const GBinderReader* args)
+    const GBinderReader* args,
+    const char* param_name,
+    const char* (*name_func)(gint32))
 {
     GBinderReader reader;
     gbinder_reader_copy(&reader, args);
 
-    gint32 domain;
-    gboolean success = gbinder_reader_read_int32(&reader, &domain);
+    gint32 value;
+    gboolean success = gbinder_reader_read_int32(&reader, &value);
     if (success) {
-      DBG("ServiceDomainChanged domain: %s (%d)",
-          qti_radio_ext_service_domain_name(domain), domain);
+        const char* name = name_func ?
+            name_func(value) : "UNKNOWN";
+        DBG("%s: %s (%d)", param_name, name, value);
     } else {
-      DBG("Failed to parse ServiceDomainChanged");
+        DBG("Failed to parse %s", param_name);
     }
 }
-
 
 /*
 typedef struct qti_radio_incoming_ims_sms {
@@ -802,8 +822,13 @@ qti_radio_ext_indication(
             qti_radio_ext_handle_vops_indication(self, &args);
             return NULL;
         case QTI_RADIO_IND_SERVICE_DOMAIN_CHANGED:
-            qti_radio_ext_handle_service_domain_changed(self, &args);
-            return NULL;
+          qti_radio_ext_handle_int32_event(self, &args, "ServiceDomain",
+                                           qti_radio_ext_service_domain_name);
+          return NULL;
+        case QTI_RADIO_IND_RADIO_STATE_CHANGED:
+          qti_radio_ext_handle_int32_event(self, &args, "RadioState",
+                                           qti_radio_ext_radio_state_name);
+          return NULL;
         default:
           DBG("Code ignored: %#x -> %s", code, qti_radio_ext_ind_name(code));
         }

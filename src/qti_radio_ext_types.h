@@ -743,8 +743,8 @@ typedef enum ims_radio_resp {
     e(0x4, onRegistrationChanged, REG_STATE_INDICATION) \
     e(0x5, onHandover, HANDOVER_INDICATION) \
     e(0x6, onServiceStatusChanged, SVC_STATUS_INDICATION) \
-    e(0x7, radioStateChanged, RADIO_STATE_CHANGED_INDICATION) \
-    e(0x8, onEmergencyCallBackModeChanged, ECBM_CHANGED_INDICATION) \
+    e(0x7, radioStateChanged, RADIO_STATE_CHANGED) \
+    e(0x8, onEmergencyCallBackModeChanged, ECBM_CHANGED) \
     e(0x9, onTtyNotification, TTY_NOTIFICATION_INDICATION) \
     e(0xa, onRefreshConferenceInfo, REFRESH_CONF_INFO_INDICATION) \
     e(0xb, onRefreshViceInfo, REFRESH_VICE_INFO_INDICATION) \

@@ -329,8 +329,6 @@ qti_ims_call_hangup(
     GDestroyNotify destroy,
     void* user_data)
 {
-    DBG("Hanging up IMS called %d %d %d", call_id, reason, flags);
-
     QtiImsCall* self = THIS(ext);
 
     QtiImsCallResultRequest* req = qti_ims_call_result_request_new(ext,
