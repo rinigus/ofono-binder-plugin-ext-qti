@@ -621,41 +621,99 @@ typedef struct qti_radio_hangup_request_info {
 } RADIO_ALIGNED(8) QtiRadioHangupRequestInfo;
 
 
+// based on IImsRadio and IImsRadioResponse stubs from ims.apk
+// requests with missing response are set to zero and are probably
+// for sync calls
 /* c(req, resp, callName, CALL_NAME) */
-#define QTI_RADIO_EXT_IMS_CALL_1_0(c) \
+#define QTI_RADIO_EXT_IMS_CALL_AIDL(c) \
+    c(1, 0, setCallback, SET_CALLBACK) \
     c(2, 1, dial, DIAL) \
+    c(3, 31, addParticipant, ADD_PARTICIPANT) \
     c(4, 11, getImsRegistrationState, GET_IMS_REG_STATE) \
     c(5, 2, answer, ANSWER) \
     c(6, 3, hangup, HANGUP) \
     c(7, 4, requestRegistrationChange, REQ_REG_CHANGE) \
-    c(31, 28, setSuppServiceNotification, SET_SUPP_SVC_NOTIFICATION) \
-    c(40, 29, cancelModifyCall, CANCEL_MODIFY_CALL) \
+    c(8, 5, queryServiceStatus, QUERY_SERVICE_STATUS) \
+    c(9, 6, setServiceStatus, SET_SERVICE_STATUS) \
+    c(10, 7, hold, HOLD) \
+    c(11, 8, resume, RESUME) \
+    c(12, 9, setConfig, SET_CONFIG) \
+    c(13, 10, getConfig, GET_CONFIG) \
+    c(14, 13, conference, CONFERENCE) \
+    c(15, 14, getClip, GET_CLIP) \
+    c(16, 15, getClir, GET_CLIR) \
+    c(17, 16, setClir, SET_CLIR) \
+    c(18, 17, getColr, GET_COLR) \
+    c(19, 0, setColr, SET_COLR) \
+    c(20, 18, exitEmergencyCallbackMode, EXIT_EMERGENCY_CALLBACK_MODE) \
+    c(21, 19, sendDtmf, SEND_DTMF) \
+    c(22, 20, startDtmf, START_DTMF) \
+    c(23, 21, stopDtmf, STOP_DTMF) \
+    c(24, 0, setUiTtyMode, SET_UI_TTY_MODE) \
+    c(25, 23, modifyCallInitiate, MODIFY_CALL_INITIATE) \
+    c(26, 24, modifyCallConfirm, MODIFY_CALL_CONFIRM) \
+    c(27, 25, queryCallForwardStatus, QUERY_CALL_FORWARD_STATUS) \
+    c(28, 40, setCallForwardStatus, SET_CALL_FORWARD_STATUS) \
+    c(29, 26, getCallWaiting, GET_CALL_WAITING) \
+    c(30, 0, setCallWaiting, SET_CALL_WAITING) \
+    c(31, 28, setSuppServiceNotification, SET_SUPP_SERVICE_NOTIFICATION) \
+    c(32, 27, explicitCallTransfer, EXPLICIT_CALL_TRANSFER) \
+    c(33, 12, suppServiceStatus, SUPP_SERVICE_STATUS) \
+    c(34, 29, getRtpStatistics, GET_RTP_STATISTICS) \
+    c(35, 30, getRtpErrorStatistics, GET_RTP_ERROR_STATISTICS) \
+    c(36, 32, deflectCall, DEFLECT_CALL) \
+    c(37, 33, sendGeolocationInfo, SEND_GEOLOCATION_INFO) \
+    c(38, 34, getImsSubConfig, GET_IMS_SUB_CONFIG) \
+    c(39, 35, sendRttMessage, SEND_RTT_MESSAGE) \
+    c(40, 36, cancelModifyCall, CANCEL_MODIFY_CALL) \
+    c(41, 37, sendSms, SEND_IMS_SMS) \
+    c(42, 0, acknowledgeSms, ACK_SMS) \
+    c(43, 0, acknowledgeSmsReport, ACK_SMS_REPORT) \
+    c(44, 0, getSmsFormat, GET_SMS_FORMAT) \
+    c(45, 38, registerMultiIdentityLines, REGISTER_MULTI_IDENTITY_LINES) \
+    c(46, 39, queryVirtualLineInfo, QUERY_VIRTUAL_LINE_INFO) \
+    c(47, 0, emergencyDial, EMERGENCY_DIAL) \
+    c(48, 41, sendUssd, SEND_USSD) \
+    c(49, 42, cancelPendingUssd, CANCEL_PENDING_USSD) \
+    c(50, 0, callComposerDial, CALL_COMPOSER_DIAL) \
+    c(51, 43, sendSipDtmf, SEND_SIP_DTMF) \
+    c(52, 44, setMediaConfiguration, SET_MEDIA_CONFIGURATION) \
+    c(53, 45, queryMultiSimVoiceCapability, QUERY_MULTI_SIM_VOICE_CAPABILITY) \
+    c(54, 46, exitSmsCallBackMode, EXIT_SMS_CALL_BACK_MODE) \
+    c(55, 47, sendVosSupportStatus, SEND_VOS_SUPPORT_STATUS) \
+    c(56, 48, sendVosActionInfo, SEND_VOS_ACTION_INFO) \
+    c(16777214, 0, getInterfaceHash, GET_INTERFACE_HASH) \
+    c(16777215, 0, getInterfaceVersion, GET_INTERFACE_VERSION)
 
-#define QTI_RADIO_EXT_IMS_CALL_1_1(c) \
-    c(41, 103, hangup_1_1, HANGUP_1_1)
+// #define QTI_RADIO_EXT_IMS_CALL_1_0(c) \
+//     c(2, 1, dial, DIAL) \
+//     c(4, 11, getImsRegistrationState, GET_IMS_REG_STATE) \
+//     c(5, 2, answer, ANSWER) \
+//     c(6, 3, hangup, HANGUP) \
+//     c(7, 4, requestRegistrationChange, REQ_REG_CHANGE) \
+//     c(31, 28, setSuppServiceNotification, SET_SUPP_SVC_NOTIFICATION) \
+//     c(40, 29, cancelModifyCall, CANCEL_MODIFY_CALL) \
 
-#define QTI_RADIO_EXT_IMS_CALL_1_2(c) \
-    c(42, 203, hangup_1_2, HANGUP_1_2) \
-    c(43, 37, sendImsSms, SEND_IMS_SMS) \
-    c(44, 38, acknowledgeSms, ACK_SMS) \
-    c(45, 39, acknowledgeSmsReport, ACK_SMS_REPORT) \
-    c(46, 40, getSmsFormat, GET_SMS_FORMAT) \
-    c(47, 41, sendGeolocationInfo_1_2, SEND_GEOLOCATION_INFO_1_2) \
+// #define QTI_RADIO_EXT_IMS_CALL_1_1(c) \
+//     c(41, 103, hangup_1_1, HANGUP_1_1)
+
+// #define QTI_RADIO_EXT_IMS_CALL_1_2(c) \
+//     c(42, 203, hangup_1_2, HANGUP_1_2) \
+//     c(43, 37, sendImsSms, SEND_IMS_SMS) \
+//     c(44, 38, acknowledgeSms, ACK_SMS) \
+//     c(45, 39, acknowledgeSmsReport, ACK_SMS_REPORT) \
+//     c(46, 40, getSmsFormat, GET_SMS_FORMAT) \
+//     c(47, 41, sendGeolocationInfo_1_2, SEND_GEOLOCATION_INFO_1_2) \
 
 typedef enum qti_radio_req {
-    QTI_RADIO_REQ_SET_CALLBACK = 1, /* setCallback */
 #define QTI_RADIO_REQ_(req,resp,Name,NAME) QTI_RADIO_REQ_##NAME = req,
-    QTI_RADIO_EXT_IMS_CALL_1_0(QTI_RADIO_REQ_)
-    QTI_RADIO_EXT_IMS_CALL_1_1(QTI_RADIO_REQ_)
-    QTI_RADIO_EXT_IMS_CALL_1_2(QTI_RADIO_REQ_)
+    QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_REQ_)
 #undef QTI_RADIO_REQ_
 } QTI_RADIO_REQ;
 
 typedef enum ims_radio_resp {
 #define QTI_RADIO_RESP_(req,resp,Name,NAME) QTI_RADIO_RESP_##NAME = resp,
-    QTI_RADIO_EXT_IMS_CALL_1_0(QTI_RADIO_RESP_)
-    QTI_RADIO_EXT_IMS_CALL_1_1(QTI_RADIO_RESP_)
-    QTI_RADIO_EXT_IMS_CALL_1_2(QTI_RADIO_RESP_)
+    QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_RESP_)
 #undef QTI_RADIO_RESP_
 } IMS_RADIO_RESP;
 

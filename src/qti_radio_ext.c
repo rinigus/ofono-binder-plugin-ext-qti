@@ -166,9 +166,7 @@ qti_radio_ext_req_name(
     switch (req) {
 #define QTI_RADIO_REQ_(req, resp, name, NAME) \
         case QTI_RADIO_REQ_##NAME: return #name;
-    QTI_RADIO_EXT_IMS_CALL_1_0(QTI_RADIO_REQ_)
-    QTI_RADIO_EXT_IMS_CALL_1_1(QTI_RADIO_REQ_)
-    QTI_RADIO_EXT_IMS_CALL_1_2(QTI_RADIO_REQ_)
+    QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_REQ_)
 #undef QTI_RADIO_REQ_
     }
     return NULL;
@@ -176,17 +174,22 @@ qti_radio_ext_req_name(
 
 static const char*
 qti_radio_ext_resp_name(
-    guint32 resp)
+    guint32 respcode)
 {
-    switch (resp) {
+//     switch (respcode) {
+// #define QTI_RADIO_RESP_(req, resp, name, NAME) \
+//         case QTI_RADIO_RESP_##NAME: return #name;
+//     QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_RESP_)
+// #undef QTI_RADIO_RESP_
+//     }
+
+// handles duplicate definitions for response
 #define QTI_RADIO_RESP_(req, resp, name, NAME) \
-        case QTI_RADIO_RESP_##NAME: return #name;
-    QTI_RADIO_EXT_IMS_CALL_1_0(QTI_RADIO_RESP_)
-    QTI_RADIO_EXT_IMS_CALL_1_1(QTI_RADIO_RESP_)
-    QTI_RADIO_EXT_IMS_CALL_1_2(QTI_RADIO_RESP_)
+        if (respcode == QTI_RADIO_RESP_##NAME) return #name;
+    QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_RESP_)
 #undef QTI_RADIO_RESP_
-    }
-    return NULL;
+
+   return NULL;
 }
 
 static const char*
@@ -365,9 +368,9 @@ qti_radio_ext_read_ims_reg_status_info(
 
     if (success) {
         DBG("%s: QtiRadioRegInfo state:%d radiotech:%d"
-            " error_code:%d datasz: %d"
+            " error_code:%d "
             " uri:%s error_msg:%s",
-            self->slot, state, radio_tech, error_code, datasz, uri ? uri : "",
+            self->slot, state, radio_tech, error_code, uri ? uri : "",
             error_message ? error_message : "");
     }
 
