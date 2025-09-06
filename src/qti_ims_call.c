@@ -225,19 +225,24 @@ static
 void
 qti_ims_call_result_response(
     QtiRadioExt* radio,
-    int result,
     GBinderReader* reader,
     void* user_data)
 {
     QtiImsCallResultRequest* req = user_data;
     BinderExtCallResultFunc complete = req->complete;
+    gint32 result;
+
+    if (!gbinder_reader_read_int32(reader, &result)) {
+        ofono_warn("qti_ims_call_result_response: Failed to parse response");
+        result = -1;
+    }
+
+    DBG("qti_ims_call_result_response %d", result);
 
     if (complete) {
         complete(req->ext, result ? BINDER_EXT_CALL_RESULT_ERROR :
             BINDER_EXT_CALL_RESULT_OK, req->user_data);
     }
-
-    DBG("qti_ims_call_result_response %d", result);
 }
 
 static

@@ -48,6 +48,7 @@
 #include <gutil_log.h>
 #include <gbinder.h>
 
+#undef DBG
 #define DBG(fmt, ...) \
     gutil_log(GLOG_MODULE_CURRENT, GLOG_LEVEL_ALWAYS, "ims:"fmt, ##__VA_ARGS__)
 
@@ -121,11 +122,18 @@ static
 void
 qti_ims_result_request_complete(
     QtiRadioExt* radio_ext,
-    int result,
     GBinderReader* reader,
     void* user_data)
 {
     QtiImsResultRequest* req = user_data;
+    gint32 result = -1;
+
+    if (!gbinder_reader_read_int32(reader, &result)) {
+        ofono_warn("qti_ims_result_request_complete: Failed to parse response");
+        result = -1;
+    }
+
+    DBG("qti_ims_result_request_complete: %d", result);
 
     if (req->complete) {
         req->complete(req->ext, result ? BINDER_EXT_IMS_RESULT_ERROR :
@@ -150,7 +158,7 @@ static
 void
 qti_ims_reg_status_changed(
     QtiRadioExt* radio,
-    QTI_RADIO_REG_STATE state,
+    guint32 state,
     void* user_data)
 {
     QtiIms* self = THIS(user_data);
@@ -181,20 +189,22 @@ static
 void
 qti_ims_reg_status_response(
     QtiRadioExt* radio_ext,
-    int result,
     GBinderReader* reader,
     void* user_data)
 {
-    DBG("qti_ims_reg_status_response");
     QtiImsResultRequest* req = user_data;
+    gint32 result;
 
-    QTI_RADIO_REG_STATE state = QTI_RADIO_REG_STATE_INVALID;
-    GBinderReader reader_copy;
+    QTI_RADIO_REG_STATE state = QTI_RADIO_REG_STATE_FAILED_TO_READ;
 
-    gbinder_reader_copy(&reader_copy, reader);
-    state = qti_radio_ext_read_ims_reg_status_info(radio_ext, &reader_copy);
+    if (gbinder_reader_read_int32(reader, &result)) {
+        state = qti_radio_ext_read_ims_reg_status_info(radio_ext, reader);
+    } else {
+        ofono_warn("qti_ims_reg_status_response: Failed to parse response");
+        state = QTI_RADIO_REG_STATE_FAILED_TO_READ;
+    }
 
-    if (state == QTI_RADIO_REG_STATE_INVALID) {
+    if (state == QTI_RADIO_REG_STATE_FAILED_TO_READ) {
         DBG("Failed to parse QtiRadioRegInfo");
         return;
     }
@@ -279,7 +289,7 @@ qti_ims_cancel(
      * Cancel a pending operation identified by the id returned by the
      * above qti_ims_set_registration() call.
      */
-    DBG("%s %u", self->slot, id);
+    DBG("qti_ims_cancel: %s %u / not implemented", self->slot, id);
 }
 
 static

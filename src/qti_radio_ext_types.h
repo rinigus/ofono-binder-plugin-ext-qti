@@ -685,26 +685,6 @@ typedef struct qti_radio_hangup_request_info {
     c(16777214, 0, getInterfaceHash, GET_INTERFACE_HASH) \
     c(16777215, 0, getInterfaceVersion, GET_INTERFACE_VERSION)
 
-// #define QTI_RADIO_EXT_IMS_CALL_1_0(c) \
-//     c(2, 1, dial, DIAL) \
-//     c(4, 11, getImsRegistrationState, GET_IMS_REG_STATE) \
-//     c(5, 2, answer, ANSWER) \
-//     c(6, 3, hangup, HANGUP) \
-//     c(7, 4, requestRegistrationChange, REQ_REG_CHANGE) \
-//     c(31, 28, setSuppServiceNotification, SET_SUPP_SVC_NOTIFICATION) \
-//     c(40, 29, cancelModifyCall, CANCEL_MODIFY_CALL) \
-
-// #define QTI_RADIO_EXT_IMS_CALL_1_1(c) \
-//     c(41, 103, hangup_1_1, HANGUP_1_1)
-
-// #define QTI_RADIO_EXT_IMS_CALL_1_2(c) \
-//     c(42, 203, hangup_1_2, HANGUP_1_2) \
-//     c(43, 37, sendImsSms, SEND_IMS_SMS) \
-//     c(44, 38, acknowledgeSms, ACK_SMS) \
-//     c(45, 39, acknowledgeSmsReport, ACK_SMS_REPORT) \
-//     c(46, 40, getSmsFormat, GET_SMS_FORMAT) \
-//     c(47, 41, sendGeolocationInfo_1_2, SEND_GEOLOCATION_INFO_1_2) \
-
 typedef enum qti_radio_req {
 #define QTI_RADIO_REQ_(req,resp,Name,NAME) QTI_RADIO_REQ_##NAME = req,
     QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_REQ_)
@@ -716,25 +696,6 @@ typedef enum ims_radio_resp {
     QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_RESP_)
 #undef QTI_RADIO_RESP_
 } IMS_RADIO_RESP;
-
-/* e(code, name, NAME) */
-// #define QTI_RADIO_IND_1_0(e) \
-//     e(1, onCallStateChanged, CALL_STATE_INDICATION) \
-//     e(2, onRing, RING_INDICATION) \
-//     e(3, onRingbackTone, RINGBACK_TONE_INDICATION) \
-//     e(4, onRegistrationChanged, REG_STATE_INDICATION) \
-//     e(5, onHandover, HANDOVER_INDICATION) \
-//     e(6, onServiceStatusChanged, SVC_STATUS_INDICATION) \
-//     e(7, radioStateChanged, RADIO_STATE_CHANGED_INDICATION)
-
-// #define QTI_RADIO_IND_1_1(e) \
-//     e(23, callStateChanged_1_1, CALL_STATE_INDICATION_1_1)
-
-// #define QTI_RADIO_IND_1_2(e) \
-//     e(24, callStateChanged_1_2, CALL_STATE_INDICATION_1_2) \
-//     e(25, onImsSmsStatusReport, SMS_STATUS_REPORT_INDICATION) \
-//     e(26, onIncomingImsSms, INCOMING_SMS_INDICATION) \
-//     e(27, onVopsChanged, VOPS_CHANGED_INDICATION)
 
 #define QTI_RADIO_IND_AIDL(e) \
     e(0x1, onCallStateChanged, CALL_STATE_INDICATION) \

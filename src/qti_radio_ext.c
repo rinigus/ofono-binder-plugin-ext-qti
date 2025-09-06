@@ -19,6 +19,7 @@
 
 #include "qti_radio_ext.h"
 #include "qti_radio_ext_types.h"
+#include "qti_utils.h"
 
 #include <radio_types.h>
 #include <binder_ext_ims_impl.h>
@@ -34,6 +35,7 @@
 #include <gutil_log.h>
 #include <gutil_macros.h>
 
+#undef DBG
 #define DBG(fmt, ...) \
     gutil_log(GLOG_MODULE_CURRENT, GLOG_LEVEL_ALWAYS, "ims:"fmt, ##__VA_ARGS__)
 
@@ -69,12 +71,6 @@ typedef void (*QtiRadioExtArgWriteFunc)(
 typedef void (*QtiRadioExtRequestHandlerFunc)(
     QtiRadioExtRequest* req,
     const GBinderReader* args);
-
-typedef void (*QtiRadioExtResultFunc)(
-    QtiRadioExt* radio,
-    int result,
-    GBinderReader* reader,
-    void* user_data);
 
 struct qti_radio_ext_request {
     guint id;  /* request id */
@@ -176,13 +172,6 @@ static const char*
 qti_radio_ext_resp_name(
     guint32 respcode)
 {
-//     switch (respcode) {
-// #define QTI_RADIO_RESP_(req, resp, name, NAME) \
-//         case QTI_RADIO_RESP_##NAME: return #name;
-//     QTI_RADIO_EXT_IMS_CALL_AIDL(QTI_RADIO_RESP_)
-// #undef QTI_RADIO_RESP_
-//     }
-
 // handles duplicate definitions for response
 #define QTI_RADIO_RESP_(req, resp, name, NAME) \
         if (respcode == QTI_RADIO_RESP_##NAME) return #name;
@@ -199,9 +188,6 @@ qti_radio_ext_ind_name(
     switch (ind) {
 #define QTI_RADIO_IND_(code, name, NAME) \
         case QTI_RADIO_IND_##NAME: return #name;
-    // QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
-    // QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
-    // QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
     QTI_RADIO_IND_AIDL(QTI_RADIO_IND_)
 #undef QTI_RADIO_IND_
     }
@@ -250,37 +236,6 @@ qti_radio_ext_log_resp(
 
     gutil_log(log, level, "RESP: %s > [%08x] %u %s",
         self->slot, serial, code, name ? name : "???");
-}
-
-static
-gsize
-binder_read_parcelable_size(
-    GBinderReader* reader)
-{
-    /* Read a single AIDL parcelable header and return inner data size */
-    guint32 non_null = 0, payload_size = 0;
-    if (gbinder_reader_read_uint32(reader, &non_null) && non_null &&
-        gbinder_reader_read_uint32(reader, &payload_size) &&
-        payload_size >= sizeof(payload_size)) {
-
-        return payload_size - sizeof(payload_size);
-    }
-    return 0;
-}
-
-static
-void
-binder_skip_parcelable_end(
-    GBinderReader* reader,
-    gsize parcel_size,
-    gsize initial_size)
-{
-    gsize data_read;
-    data_read = gbinder_reader_bytes_read(reader) - initial_size;
-    while (data_read < parcel_size) {
-        gbinder_reader_read_uint32(reader, NULL);
-        data_read += sizeof(guint32);
-    }
 }
 
 static
@@ -348,9 +303,9 @@ qti_radio_ext_read_ims_reg_status_info(
     gint32 datasz;
     gint32 state = QTI_RADIO_REG_STATE_FAILED_TO_READ;
     gint32 error_code;
-    const char *error_message = NULL;
+    char *error_message = NULL;
     gint32 radio_tech;
-    const char *uri = NULL;
+    char *uri = NULL;
 
     gboolean success = (
         gbinder_reader_read_int32(reader, &hasdata) &&
@@ -511,7 +466,7 @@ qti_radio_ext_read_call_info(GBinderReader* reader, AIDLCallInfo* info)
     memset(info, 0, sizeof(*info));
 
     // parcelable header
-    parcel_size = binder_read_parcelable_size(reader);
+    parcel_size = qti_binder_read_parcelable_size(reader);
     if (parcel_size == 0)
       return FALSE;
 
@@ -556,7 +511,7 @@ qti_radio_ext_read_call_info(GBinderReader* reader, AIDLCallInfo* info)
 
     info->diversionInfo = gbinder_reader_read_string16(reader);
 
-    binder_skip_parcelable_end(reader, parcel_size, initial_size);
+    qti_binder_skip_parcelable_end(reader, parcel_size, initial_size);
 
     // gbinder_reader_read_parcelable(reader, NULL); // additionalCallInfo
     // gbinder_reader_read_parcelable(reader, NULL); // audioQuality
@@ -926,19 +881,14 @@ qti_radio_ext_result_response(
     QtiRadioExtRequest* req,
     const GBinderReader* args)
 {
-    gint32 result;
     GBinderReader reader;
     QtiRadioExt* self = req->radio;
     QtiRadioExtResultRequest* result_req = G_CAST(req,
         QtiRadioExtResultRequest, base);
 
     gbinder_reader_copy(&reader, args);
-    if (!gbinder_reader_read_int32(&reader, &result)) {
-        ofono_warn("Failed to parse response");
-        result = -1;
-    }
     if (result_req->complete) {
-        result_req->complete(self, result, &reader, req->user_data);
+        result_req->complete(self, &reader, req->user_data);
     }
 }
 
@@ -1317,8 +1267,6 @@ qti_radio_ext_dial_args(
     GBinderWriter* writer,
     va_list va)
 {
-    QtiRadioDialRequest* dial_request_writer;
-
     const char* number = va_arg(va, const char*);
     BINDER_EXT_TOA toa = va_arg(va, BINDER_EXT_TOA);
     BINDER_EXT_CALL_CLIR clir = va_arg(va, BINDER_EXT_CALL_CLIR);
@@ -1556,7 +1504,7 @@ qti_radio_ext_hangup(
 static
 void
 qti_radio_ext_send_ims_sms_args(
-    GBinderWriter* args,
+    GBinderWriter* writer,
     va_list va)
 {
     const char* smsc = va_arg(va, const char*);
@@ -1565,41 +1513,24 @@ qti_radio_ext_send_ims_sms_args(
     guint msg_ref = va_arg(va, guint);
     BINDER_EXT_SMS_SEND_FLAGS flags = va_arg(va, BINDER_EXT_SMS_SEND_FLAGS);
 
+    gint32 initial_size;
 
-    static const GBinderWriterField qti_radio_ims_sms_message_f[] = {
-        GBINDER_WRITER_FIELD_HIDL_STRING
-            (QtiRadioImsSmsMessage, format),
-        GBINDER_WRITER_FIELD_HIDL_STRING
-            (QtiRadioImsSmsMessage, smsc),
-        GBINDER_WRITER_FIELD_HIDL_VEC_BYTE
-            (QtiRadioImsSmsMessage, pdu),
-        GBINDER_WRITER_FIELD_END()
-    };
+    // Non-null parcelable
+    gbinder_writer_append_int32(writer, 1);
 
-    static const GBinderWriterType qti_radio_ims_sms_message_t = {
-        GBINDER_WRITER_STRUCT_NAME_AND_SIZE(QtiRadioImsSmsMessage),
-        qti_radio_ims_sms_message_f
-    };
+    initial_size = gbinder_writer_bytes_written(writer);
+    // Dummy parcelable size, replaced at the end
+    gbinder_writer_append_int32(writer, 0);
 
-    QtiRadioImsSmsMessage* sms = gbinder_writer_new0(args, QtiRadioImsSmsMessage);
+    gbinder_writer_append_int32(writer, msg_ref);
+    gbinder_writer_append_string16(writer, "3gpp");
+    gbinder_writer_append_string16(writer, smsc ? smsc : "");
+    gbinder_writer_append_bool(writer, FALSE); // retry via ofono if needed
+    gbinder_writer_append_byte_array(writer, pdu, pdu_len);
 
-    sms->message_ref = msg_ref;
-
-    // I guess?
-    // we don't need to retry as ofono will handle it
-    sms->shall_retry = FALSE;
-
-    binder_copy_hidl_string(args, &sms->format, "3gpp");
-    binder_copy_hidl_string(args, &sms->smsc, smsc);
-
-    GBinderHidlVec* pdu_vec = gbinder_writer_new0(args, GBinderHidlVec);
-    pdu_vec->count = pdu_len;
-    pdu_vec->data.ptr = gbinder_writer_memdup(args, pdu, pdu_len);
-    pdu_vec->owns_buffer = TRUE;
-
-    sms->pdu = *pdu_vec;
-
-    gbinder_writer_append_struct(args, sms, &qti_radio_ims_sms_message_t, NULL);
+    // write parcelable size
+    gbinder_writer_overwrite_int32(writer, initial_size,
+        gbinder_writer_bytes_written(writer) - initial_size);
 }
 
 guint

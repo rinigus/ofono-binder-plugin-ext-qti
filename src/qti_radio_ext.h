@@ -30,7 +30,6 @@ typedef struct qti_radio_ext QtiRadioExt;
 
 typedef void (*QtiRadioExtResultFunc)(
     QtiRadioExt* radio,
-    int result,
     GBinderReader* reader,
     void* user_data);
 

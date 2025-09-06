@@ -20,6 +20,7 @@
 #include "qti_ims_sms.h"
 #include "qti_radio_ext.h"
 #include "qti_radio_ext_types.h"
+#include "qti_utils.h"
 
 #include <binder_ext_sms_impl.h>
 
@@ -35,6 +36,7 @@
 #include <gutil_misc.h>
 #include <gutil_log.h>
 
+#undef DBG
 #define DBG(fmt, ...) \
     gutil_log(GLOG_MODULE_CURRENT, GLOG_LEVEL_ALWAYS, "ims:"fmt, ##__VA_ARGS__)
 
@@ -146,27 +148,48 @@ static
 void
 qti_ims_sms_result_request_response(
     QtiRadioExt* radio,
-    int msg_ref,
     GBinderReader* reader,
     void* user_data)
 {
-    gint32 result;
-    GBinderReader r;
     QtiImsSmsResultRequest* req = user_data;
     BINDER_EXT_SMS_SEND_RESULT send_result;
 
-    gbinder_reader_copy(&r, reader);
-    if (!gbinder_reader_read_int32(&r, &result)) {
-        ofono_warn("Failed to parse response");
-        result = QTI_RADIO_SEND_STATUS_ERROR;
-    }
+    // load response
+    gint32 msgRef;
+    gint32 smsStatus;
+    gint32 reason;
+    gint32 networkErrorCode;
+    gint32 transportErrorCode;
+    gint32 radioTech;
+    gint32 parcel_size = qti_binder_read_parcelable_size(reader);
 
-    DBG("qti_ims_sms_result_request_response\n");
-    DBG("result: %d\n", result);
+    if (parcel_size > 0 &&
+        gbinder_reader_read_int32(reader, &msgRef) &&
+        gbinder_reader_read_int32(reader, &smsStatus)) {
+        // some of the rest are possibly optional and not always present
+        // cutoff was mainly done by just ensuring that smsStatus is read
+        if (!gbinder_reader_read_int32(reader, &reason))
+        reason = -1;
 
-    if (result == QTI_RADIO_SEND_STATUS_OK) {
+        if (!gbinder_reader_read_int32(reader, &networkErrorCode))
+        networkErrorCode = -1;
+        if (!gbinder_reader_read_int32(reader, &transportErrorCode))
+        transportErrorCode = -1;
+        if (!gbinder_reader_read_int32(reader, &radioTech))
+        radioTech = 0;
+
+        DBG("QTI SMS result response: msgRef=%d status=%d reason=%d nError=%d "
+            "tError=%d rTech=%d",
+            msgRef, smsStatus, reason, networkErrorCode, transportErrorCode,
+            radioTech);
+
+        if (smsStatus == QTI_RADIO_SEND_STATUS_OK)
         send_result = BINDER_EXT_SMS_SEND_RESULT_OK;
+        else
+        send_result = BINDER_EXT_SMS_SEND_RESULT_ERROR;
     } else {
+        ofono_warn(
+            "Failed to parse SMS response - setting send status to error");
         send_result = BINDER_EXT_SMS_SEND_RESULT_ERROR;
     }
 
@@ -215,7 +238,7 @@ qti_ims_sms_send(
     guint id = qti_radio_ext_send_ims_sms(self->radio_ext, smsc, pdu, pdu_len, msg_ref, flags,
         qti_ims_sms_result_request_response, qti_ims_sms_result_request_destroy, req);
 
-    DBG("Sending SMS: pdu_len=%u, msg_ref=%u", pdu_len, msg_ref);
+    DBG("Sending SMS: pdu_len=%zu, msg_ref=%u", pdu_len, msg_ref);
 
     if (id) {
         req->id = id;
