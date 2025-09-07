@@ -933,7 +933,8 @@ qti_radio_ext_request_alloc(
     req->free = qti_radio_ext_request_default_free;
     req->destroy = destroy;
     req->user_data = user_data;
-    g_hash_table_insert(self->requests, KEY(req->id), req);
+    if (resp > 0)
+      g_hash_table_insert(self->requests, KEY(req->id), req);
     return req;
 }
 
@@ -1022,6 +1023,7 @@ qti_radio_ext_result_request_submit(
     if (G_LIKELY(self)) {
         GBinderLocalRequest* args;
         GBinderWriter writer;
+        gboolean is_async = (resp_code > 0);
         QtiRadioExtResultRequest* req =
             qti_radio_ext_result_request_new(self, resp_code,
                 complete, destroy, user_data);
@@ -1038,14 +1040,43 @@ qti_radio_ext_result_request_submit(
             va_end(va);
         }
 
-        /* Submit the request */
-        qti_radio_ext_submit_request(&req->base, req_code, req_id, args);
-        gbinder_local_request_unref(args);
-        if (req->base.tx) {
-            /* Success */
-            return req_id;
+        if (is_async) {
+            /* Submit the request */
+            qti_radio_ext_submit_request(&req->base, req_code, req_id, args);
+            gbinder_local_request_unref(args);
+            if (req->base.tx) {
+                /* Success */
+                return req_id;
+            }
+            g_hash_table_remove(self->requests, KEY(req_id));
+        } else {
+            // sync requests
+            qti_radio_ext_log_req(self, req_code, req_id);
+            qti_radio_ext_dump_request(args);
+
+            int status;
+            GBinderRemoteReply *reply = gbinder_client_transact_sync_reply(
+                self->client, req_code, args, &status);
+            if (status == GBINDER_STATUS_OK) {
+                DBG("Reply status: OK");
+
+                GBinderReader reader;
+                gbinder_remote_reply_init_reader(reply, &reader);
+                qti_radio_ext_dump_data(&reader);
+
+                g_object_ref(self);
+                if (req->base.handle_response) {
+                    req->base.handle_response(req, &reader);
+                }
+                g_object_unref(self);
+            } else {
+                DBG("Reply status: failed - %d", status);
+            }
+
+            gbinder_remote_reply_unref(reply);
+            gbinder_local_request_unref(args);
+            req->base.free(req);
         }
-        g_hash_table_remove(self->requests, KEY(req_id));
     }
     return 0;
 }
