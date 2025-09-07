@@ -208,11 +208,27 @@ qti_ims_sms_incoming_sms_handler(
 {
     QtiImsSms* self = user_data;
 
-    DBG("Incoming SMS!!!: pdu_len=%d", pdu_len);
+    DBG("Incoming SMS: pdu_len=%d", pdu_len);
 
     g_signal_emit(self, qti_ims_sms_signals[SIGNAL_SMS_RECEIVED], 0, pdu, pdu_len);
 }
 
+static
+void
+qti_ims_sms_incoming_sms_report_handler(
+    QtiRadioExt* radio,
+    const void* pdu,
+    guint pdu_len,
+    guint msg_ref,
+    void* user_data)
+{
+    QtiImsSms* self = user_data;
+
+    DBG("Incoming SMS Report: msgref=%u pdu_len=%u", msg_ref, pdu_len);
+
+    g_signal_emit(self, qti_ims_sms_signals[SIGNAL_SMS_STATE_CHANGED], 0, pdu,
+                  pdu_len, msg_ref);
+}
 
 /*==========================================================================*
  * BinderExtSmsInterface
@@ -275,12 +291,13 @@ qti_ims_sms_ack_report(
     QtiImsSmsResultRequest* req = qti_ims_sms_result_request_new(ext,
         NULL, NULL, NULL);
 
-    guint id = qti_radio_ext_acknowledge_sms(self->radio_ext, msg_ref, ok,
-        qti_ims_sms_result_request_response, qti_ims_sms_result_request_destroy, req);
+    guint id = qti_radio_ext_acknowledge_sms_report(self->radio_ext, msg_ref, ok,
+        NULL, NULL, req);
 
-    DBG("Acknowledging SMS report: msg_ref=%u, ok=%d", msg_ref, ok);
+    DBG("Acknowledging SMS report: msg_ref=%u ok=%d", msg_ref, ok);
 
     if (id) {
+        GERR("qti_ims_sms_ack_report: ID is expected to be zero! id=%u", id);
         req->id = id;
         g_hash_table_insert(self->id_map, ID_KEY(id), ID_VALUE(id));
     } else {
@@ -303,11 +320,12 @@ qti_ims_sms_ack_incoming(
     // so we use -1, we have to change upstream to fix this
     // TODO: fix this
     guint id = qti_radio_ext_acknowledge_sms(self->radio_ext, -1, ok,
-        qti_ims_sms_result_request_response, qti_ims_sms_result_request_destroy, req);
+        NULL, NULL, req);
 
     DBG("Acknowledging incoming SMS: ok=%d", ok);
 
     if (id) {
+        GERR("qti_ims_sms_ack_report: ID is expected to be zero! id=%u", id);
         req->id = id;
         g_hash_table_insert(self->id_map, ID_KEY(id), ID_VALUE(id));
     } else {
@@ -375,6 +393,7 @@ qti_ims_sms_new(
         self->sms = g_ptr_array_new_with_free_func(g_free);
 
         qti_radio_ext_add_incoming_sms_handler(radio_ext, qti_ims_sms_incoming_sms_handler, self);
+        qti_radio_ext_add_incoming_sms_report_handler(radio_ext, qti_ims_sms_incoming_sms_report_handler, self);
 
         return BINDER_EXT_SMS(self);
     }
@@ -394,6 +413,7 @@ qti_ims_sms_finalize(
     qti_radio_ext_unref(self->radio_ext);
     gutil_idle_pool_destroy(self->pool);
     g_ptr_array_free(self->sms, TRUE);
+    g_hash_table_unref(self->id_map);
     G_OBJECT_CLASS(PARENT_CLASS)->finalize(object);
 }
 
@@ -403,6 +423,7 @@ qti_ims_sms_init(
     QtiImsSms* self)
 {
     self->pool = gutil_idle_pool_new();
+    self->id_map = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 static
@@ -415,7 +436,8 @@ qti_ims_sms_class_init(
     G_OBJECT_CLASS(klass)->finalize = qti_ims_sms_finalize;
     qti_ims_sms_signals[SIGNAL_SMS_STATE_CHANGED] =
         g_signal_new(SIGNAL_SMS_STATE_CHANGED_NAME, type,
-            G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+            G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE,
+            3, G_TYPE_POINTER, G_TYPE_UINT, G_TYPE_UINT);
     qti_ims_sms_signals[SIGNAL_SMS_RECEIVED] =
         g_signal_new(SIGNAL_SMS_RECEIVED_NAME, type,
             G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE,

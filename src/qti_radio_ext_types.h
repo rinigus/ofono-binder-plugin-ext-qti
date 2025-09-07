@@ -377,21 +377,6 @@ typedef struct qti_radio_ims_sms_send_status_report {
 } RADIO_ALIGNED(8) QtiRadioImsSmsSendStatusReport;
 
 /*
-struct IncomingImsSms {
-    string format;
-    vec<uint8_t>  pdu;
-    VerificationStatus verstat;
-};
-*/
-
-typedef struct qti_radio_incoming_ims_sms {
-    GBinderHidlString format RADIO_ALIGNED(8);
-    GBinderHidlVec pdu RADIO_ALIGNED(8);
-    guint32 verstat RADIO_ALIGNED(4);
-} RADIO_ALIGNED(8) QtiRadioIncomingImsSms;
-
-
-/*
 
 struct RegistrationInfo {
     RegState state;

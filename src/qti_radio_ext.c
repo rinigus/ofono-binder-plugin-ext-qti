@@ -93,6 +93,7 @@ enum qti_radio_ext_signal {
     SIGNAL_EXT_CALL_STATE_CHANGED,
     SIGNAL_EXT_ON_RING,
     SIGNAL_EXT_ON_INCOMING_SMS,
+    SIGNAL_EXT_ON_INCOMING_SMS_REPORT,
     SIGNAL_COUNT
 };
 
@@ -100,6 +101,7 @@ enum qti_radio_ext_signal {
 #define SIGNAL_EXT_CALL_STATE_CHANGED_NAME          "qti-radio-ext-call-state-changed"
 #define SIGNAL_EXT_ON_RING_NAME                     "qti-radio-ext-on-ring"
 #define SIGNAL_EXT_ON_INCOMING_SMS_NAME             "qti-radio-ext-on-incoming-sms"
+#define SIGNAL_EXT_ON_INCOMING_SMS_REPORT_NAME      "qti-radio-ext-on-incoming-sms-report"
 
 static guint qti_radio_ext_signals[SIGNAL_COUNT] = { 0 };
 
@@ -672,14 +674,6 @@ qti_radio_ext_handle_int32_event(
     }
 }
 
-/*
-typedef struct qti_radio_incoming_ims_sms {
-    GBinderHidlString format RADIO_ALIGNED(8);
-    GBinderHidlVec pdu RADIO_ALIGNED(8);
-    guint32 verstat RADIO_ALIGNED(4);
-} RADIO_ALIGNED(8) QtiRadioIncomingImsSms;
-*/
-
 static
 void
 qti_radio_ext_handle_incoming_sms_indication(
@@ -687,30 +681,73 @@ qti_radio_ext_handle_incoming_sms_indication(
     const GBinderReader* args)
 {
     GBinderReader reader;
-    QtiRadioIncomingImsSms* sms;
 
     gbinder_reader_copy(&reader, args);
-    sms = gbinder_reader_read_hidl_struct(&reader, QtiRadioIncomingImsSms);
 
-    if (sms) {
-        const char *format = sms->format.data.str ? sms->format.data.str : "";
-        const guint32 verstat = sms->verstat;
-        const guint pdu_len = sms->pdu.count;
-        const void* pdu = sms->pdu.data.ptr;
-
-        // copy pdu to a new buffer
-        const void* pdu_copy = g_memdup(pdu, pdu_len);
-
-        DBG("%s: Incoming SMS indication format:%s verstat:%d pdu_len:%d",
-            self->slot, format, verstat, pdu_len);
-        gutil_log_dump(&qti_radio_ext_binder_dump_module, GLOG_LEVEL_VERBOSE, "  ", pdu_copy, pdu_len);
-
-        g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_INCOMING_SMS], 0, pdu_copy, pdu_len);
-    } else {
+    gsize parcel_size = qti_binder_read_parcelable_size(&reader);
+    if (parcel_size == 0) {
         DBG("%s: failed to parse incoming SMS data", self->slot);
+        return;
     }
+
+    char* format = gbinder_reader_read_string16(&reader);
+    gsize pdu_len = 0;
+    const void* pdu = gbinder_reader_read_byte_array(&reader, &pdu_len);
+    gint32 verstat = -1;
+    if (!format || !pdu || !gbinder_reader_read_int32(&reader,&verstat)) {
+        DBG("%s: failed to parse incoming SMS data", self->slot);
+        g_free(format);
+        return;
+    }
+
+    void *pdu_copy = g_memdup(pdu, pdu_len);
+
+    DBG("%s: Incoming SMS indication format=%s verstat=%d pdu_len=%zu",
+          self->slot, format, verstat, pdu_len);
+
+    g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_INCOMING_SMS], 0,
+                  pdu_copy, pdu_len);
 }
 
+static
+void
+qti_radio_ext_handle_incoming_sms_report_indication(
+    QtiRadioExt* self,
+    const GBinderReader* args)
+{
+    GBinderReader reader;
+
+    gbinder_reader_copy(&reader, args);
+
+    gsize parcel_size = qti_binder_read_parcelable_size(&reader);
+    if (parcel_size == 0) {
+        DBG("%s: failed to parse incoming SMS report data (prclsz)", self->slot);
+        return;
+    }
+
+    gint32 msg_ref;
+    if (!gbinder_reader_read_int32(&reader,&msg_ref)) {
+        DBG("%s: failed to parse incoming SMS report data (msgref)", self->slot);
+        return;
+    }
+
+    char* format = gbinder_reader_read_string16(&reader);
+    gsize pdu_len = 0;
+    const void* pdu = gbinder_reader_read_byte_array(&reader, &pdu_len);
+    if (!format || !pdu) {
+        DBG("%s: failed to parse incoming SMS data", self->slot);
+        g_free(format);
+        return;
+    }
+
+    void *pdu_copy = g_memdup(pdu, pdu_len);
+
+    DBG("%s: Incoming SMS indication msgref=%d, format=%s pdu_len=%zu",
+          self->slot, msg_ref, format, pdu_len);
+
+    g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_INCOMING_SMS_REPORT], 0,
+                  pdu_copy, pdu_len, msg_ref);
+}
 
 static
 GBinderLocalReply*
@@ -776,14 +813,20 @@ qti_radio_ext_indication(
         case QTI_RADIO_IND_VOPS_INDICATION:
             qti_radio_ext_handle_vops_indication(self, &args);
             return NULL;
+        case QTI_RADIO_IND_INCOMING_SMS:
+            qti_radio_ext_handle_incoming_sms_indication(self, &args);
+            return NULL;
+        case QTI_RADIO_IND_SMS_SEND_STATUS:
+            qti_radio_ext_handle_incoming_sms_report_indication(self, &args);
+            return NULL;
         case QTI_RADIO_IND_SERVICE_DOMAIN_CHANGED:
-          qti_radio_ext_handle_int32_event(self, &args, "ServiceDomain",
-                                           qti_radio_ext_service_domain_name);
-          return NULL;
+            qti_radio_ext_handle_int32_event(self, &args, "ServiceDomain",
+                                            qti_radio_ext_service_domain_name);
+            return NULL;
         case QTI_RADIO_IND_RADIO_STATE_CHANGED:
-          qti_radio_ext_handle_int32_event(self, &args, "RadioState",
-                                           qti_radio_ext_radio_state_name);
-          return NULL;
+            qti_radio_ext_handle_int32_event(self, &args, "RadioState",
+                                            qti_radio_ext_radio_state_name);
+            return NULL;
         default:
           DBG("Code ignored: %#x -> %s", code, qti_radio_ext_ind_name(code));
         }
@@ -832,6 +875,16 @@ qti_radio_ext_add_incoming_sms_handler(
 {
     return (G_LIKELY(self) && G_LIKELY(handler)) ? g_signal_connect(self,
         SIGNAL_EXT_ON_INCOMING_SMS_NAME, G_CALLBACK(handler), user_data) : 0;
+}
+
+gulong
+qti_radio_ext_add_incoming_sms_report_handler(
+    QtiRadioExt* self,
+    QtiRadioExtIncomingSmsReportFunc handler,
+    void* user_data)
+{
+    return (G_LIKELY(self) && G_LIKELY(handler)) ? g_signal_connect(self,
+        SIGNAL_EXT_ON_INCOMING_SMS_REPORT_NAME, G_CALLBACK(handler), user_data) : 0;
 }
 
 static
@@ -1066,7 +1119,7 @@ qti_radio_ext_result_request_submit(
 
                 g_object_ref(self);
                 if (req->base.handle_response) {
-                    req->base.handle_response(req, &reader);
+                    req->base.handle_response((QtiRadioExtRequest *)req, &reader);
                 }
                 g_object_unref(self);
             } else {
@@ -1075,7 +1128,6 @@ qti_radio_ext_result_request_submit(
 
             gbinder_remote_reply_unref(reply);
             gbinder_local_request_unref(args);
-            req->base.free(req);
         }
     }
     return 0;
@@ -1269,27 +1321,6 @@ qti_radio_ext_set_reg_state(
         qti_radio_ext_set_reg_state_args,
         complete, destroy, user_data,
         reg_state);
-}
-
-/* From ofono-binder-plugin's binder-util.c */
-static
-void
-binder_copy_hidl_string(
-    GBinderWriter* writer,
-    GBinderHidlString* dest,
-    const char* src)
-{
-    gssize len = src ? strlen(src) : 0;
-    dest->owns_buffer = TRUE;
-    if (len > 0) {
-        /* GBinderWriter takes ownership of the string contents */
-        dest->len = (guint32) len;
-        dest->data.str = gbinder_writer_memdup(writer, src, len + 1);
-    } else {
-        /* Replace NULL strings with empty strings */
-        dest->data.str = "";
-        dest->len = 0;
-    }
 }
 
 static
@@ -1629,6 +1660,32 @@ qti_radio_ext_acknowledge_sms(
         message_ref, sms_result_code);
 }
 
+static
+void
+qti_radio_ext_acknowledge_sms_report_args(
+    GBinderWriter* writer,
+    va_list va)
+{
+    guint32 message_ref = va_arg(va, guint32);
+    guint32 sms_report_code = va_arg(va, guint32);
+
+    gint32 initial_size;
+
+    // Non-null parcelable
+    gbinder_writer_append_int32(writer, 1);
+
+    initial_size = gbinder_writer_bytes_written(writer);
+    // Dummy parcelable size, replaced at the end
+    gbinder_writer_append_int32(writer, 0);
+
+    gbinder_writer_append_int32(writer, message_ref);
+    gbinder_writer_append_int32(writer, sms_report_code);
+
+    // write parcelable size
+    gbinder_writer_overwrite_int32(writer, initial_size,
+        gbinder_writer_bytes_written(writer) - initial_size);
+}
+
 guint
 qti_radio_ext_acknowledge_sms_report(
     QtiRadioExt* self,
@@ -1638,12 +1695,12 @@ qti_radio_ext_acknowledge_sms_report(
     GDestroyNotify destroy,
     void* user_data)
 {
-    QTI_RADIO_IMS_SMS_STATUS_REPORT_RESULT sms_report_code = sms_report ? QTI_RADIO_STATUS_REPORT_OK : QTI_RADIO_STATUS_REPORT_ERROR;
+    guint32 sms_report_code = sms_report ? QTI_RADIO_STATUS_REPORT_OK : QTI_RADIO_STATUS_REPORT_ERROR;
 
     return qti_radio_ext_result_request_submit(self,
         QTI_RADIO_REQ_ACK_SMS_REPORT,
         QTI_RADIO_RESP_ACK_SMS_REPORT,
-        qti_radio_ext_acknowledge_sms_args,
+        qti_radio_ext_acknowledge_sms_report_args,
         complete, destroy, user_data,
         message_ref, sms_report_code);
 }
@@ -1719,6 +1776,10 @@ qti_radio_ext_class_init(
         g_signal_new(SIGNAL_EXT_ON_INCOMING_SMS_NAME, G_OBJECT_CLASS_TYPE(klass),
             G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE,
             2, G_TYPE_POINTER, G_TYPE_UINT);
+    qti_radio_ext_signals[SIGNAL_EXT_ON_INCOMING_SMS_REPORT] =
+        g_signal_new(SIGNAL_EXT_ON_INCOMING_SMS_REPORT_NAME, G_OBJECT_CLASS_TYPE(klass),
+            G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE,
+            3, G_TYPE_POINTER, G_TYPE_UINT, G_TYPE_UINT);
 }
 
 /*

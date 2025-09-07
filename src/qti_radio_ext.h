@@ -54,6 +54,13 @@ typedef void (*QtiRadioExtIncomingSmsFunc)(
     guint pdu_len,
     void* user_data);
 
+typedef void (*QtiRadioExtIncomingSmsReportFunc)(
+    QtiRadioExt* radio,
+    const void* pdu,
+    guint pdu_len,
+    guint msg_ref,
+    void* user_data);
+
 QtiRadioExt*
 qti_radio_ext_new(
     const char* dev,
@@ -159,7 +166,13 @@ qti_radio_ext_add_incoming_sms_handler(
     QtiRadioExtIncomingSmsFunc handler,
     void* user_data);
 
-guint
+gulong
+qti_radio_ext_add_incoming_sms_report_handler(
+    QtiRadioExt* self,
+    QtiRadioExtIncomingSmsReportFunc handler,
+    void* user_data);
+
+    guint
 qti_radio_ext_acknowledge_sms(
     QtiRadioExt* self,
     guint32 message_ref,
