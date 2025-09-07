@@ -1556,14 +1556,27 @@ qti_radio_ext_send_ims_sms(
 static
 void
 qti_radio_ext_acknowledge_sms_args(
-    GBinderWriter* args,
+    GBinderWriter* writer,
     va_list va)
 {
     guint32 message_ref = va_arg(va, guint32);
     guint32 sms_result = va_arg(va, guint32);
 
-    gbinder_writer_append_int32(args, message_ref);
-    gbinder_writer_append_int32(args, sms_result);
+    gint32 initial_size;
+
+    // Non-null parcelable
+    gbinder_writer_append_int32(writer, 1);
+
+    initial_size = gbinder_writer_bytes_written(writer);
+    // Dummy parcelable size, replaced at the end
+    gbinder_writer_append_int32(writer, 0);
+
+    gbinder_writer_append_int32(writer, message_ref);
+    gbinder_writer_append_int32(writer, sms_result);
+
+    // write parcelable size
+    gbinder_writer_overwrite_int32(writer, initial_size,
+        gbinder_writer_bytes_written(writer) - initial_size);
 }
 
 guint
