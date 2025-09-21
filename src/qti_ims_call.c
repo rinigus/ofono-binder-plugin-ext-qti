@@ -222,6 +222,46 @@ qti_ims_call_get_calls(
 }
 
 static
+const char*
+qti_ims_call_result_response_name(QTI_RADIO_ERROR_CODE code)
+{
+    switch (code) {
+    case QTI_RADIO_ERROR_INVALID: return "INVALID";
+    case QTI_RADIO_ERROR_SUCCESS: return "SUCCESS";
+    case QTI_RADIO_ERROR_RADIO_NOT_AVAILABLE: return "RADIO_NOT_AVAILABLE";
+    case QTI_RADIO_ERROR_GENERIC_FAILURE: return "GENERIC_FAILURE";
+    case QTI_RADIO_ERROR_PASSWORD_INCORRECT: return "PASSWORD_INCORRECT";
+    case QTI_RADIO_ERROR_REQUEST_NOT_SUPPORTED: return "REQUEST_NOT_SUPPORTED";
+    case QTI_RADIO_ERROR_CANCELLED: return "CANCELLED";
+    case QTI_RADIO_ERROR_NO_MEMORY: return "NO_MEMORY";
+    case QTI_RADIO_ERROR_UNUSED: return "UNUSED";
+    case QTI_RADIO_ERROR_INVALID_PARAMETER: return "INVALID_PARAMETER";
+    case QTI_RADIO_ERROR_REJECTED_BY_REMOTE: return "REJECTED_BY_REMOTE";
+    case QTI_RADIO_ERROR_IMS_DEREGISTERED: return "IMS_DEREGISTERED";
+    case QTI_RADIO_ERROR_NETWORK_NOT_SUPPORTED: return "NETWORK_NOT_SUPPORTED";
+    case QTI_RADIO_ERROR_HOLD_RESUME_FAILED: return "HOLD_RESUME_FAILED";
+    case QTI_RADIO_ERROR_HOLD_RESUME_CANCELED: return "HOLD_RESUME_CANCELED";
+    case QTI_RADIO_ERROR_REINVITE_COLLISION: return "REINVITE_COLLISION";
+    case QTI_RADIO_ERROR_FDN_CHECK_FAILURE: return "FDN_CHECK_FAILURE";
+    case QTI_RADIO_ERROR_SS_MODIFIED_TO_DIAL: return "SS_MODIFIED_TO_DIAL";
+    case QTI_RADIO_ERROR_SS_MODIFIED_TO_USSD: return "SS_MODIFIED_TO_USSD";
+    case QTI_RADIO_ERROR_SS_MODIFIED_TO_SS: return "SS_MODIFIED_TO_SS";
+    case QTI_RADIO_ERROR_SS_MODIFIED_TO_DIAL_VIDEO: return "SS_MODIFIED_TO_DIAL_VIDEO";
+    case QTI_RADIO_ERROR_DIAL_MODIFIED_TO_USSD: return "DIAL_MODIFIED_TO_USSD";
+    case QTI_RADIO_ERROR_DIAL_MODIFIED_TO_SS: return "DIAL_MODIFIED_TO_SS";
+    case QTI_RADIO_ERROR_DIAL_MODIFIED_TO_DIAL: return "DIAL_MODIFIED_TO_DIAL";
+    case QTI_RADIO_ERROR_DIAL_MODIFIED_TO_DIAL_VIDEO: return "DIAL_MODIFIED_TO_DIAL_VIDEO";
+    case QTI_RADIO_ERROR_DIAL_VIDEO_MODIFIED_TO_USSD: return "DIAL_VIDEO_MODIFIED_TO_USSD";
+    case QTI_RADIO_ERROR_DIAL_VIDEO_MODIFIED_TO_SS: return "DIAL_VIDEO_MODIFIED_TO_SS";
+    case QTI_RADIO_ERROR_DIAL_VIDEO_MODIFIED_TO_DIAL: return "DIAL_VIDEO_MODIFIED_TO_DIAL";
+    case QTI_RADIO_ERROR_DIAL_VIDEO_MODIFIED_TO_DIAL_VIDEO: return "DIAL_VIDEO_MODIFIED_TO_DIAL_VIDEO";
+    case QTI_RADIO_ERROR_USSD_CS_FALLBACK: return "USSD_CS_FALLBACK";
+    case QTI_RADIO_ERROR_CF_SERVICE_NOT_REGISTERED: return "CF_SERVICE_NOT_REGISTERED";
+    default: return "?";
+    }
+}
+
+static
 void
 qti_ims_call_result_response(
     QtiRadioExt* radio,
@@ -237,11 +277,15 @@ qti_ims_call_result_response(
         result = -1;
     }
 
-    DBG("qti_ims_call_result_response %d", result);
+    DBG("qti_ims_call_result_response: %s(%d)",
+        qti_ims_call_result_response_name(result), result);
 
     if (complete) {
-        complete(req->ext, result ? BINDER_EXT_CALL_RESULT_ERROR :
-            BINDER_EXT_CALL_RESULT_OK, req->user_data);
+        complete(req->ext,
+            (result == QTI_RADIO_ERROR_SUCCESS) ?
+                BINDER_EXT_CALL_RESULT_OK :
+                BINDER_EXT_CALL_RESULT_ERROR,
+            req->user_data);
     }
 }
 
