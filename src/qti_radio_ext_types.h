@@ -65,7 +65,6 @@ enum RegState : int32_t {
 */
 
 // Updated based on AIDL ims.apk -> vendor/qti/hardware/radio/ims/RegState
-
 typedef enum qti_radio_reg_state {
     QTI_RADIO_REG_STATE_REGISTERED = 1,
     QTI_RADIO_REG_STATE_NOT_REGISTERED = 2,
@@ -75,20 +74,14 @@ typedef enum qti_radio_reg_state {
     QTI_RADIO_REG_STATE_FAILED_TO_READ = -1 // extra state to tag failed read
 } QTI_RADIO_REG_STATE;
 
-
-/*
-enum ServiceClassStatus : int32_t {
-    DISABLED,
-    ENABLED,
-    INVALID,
-};
-*/
-
-typedef enum qti_radio_service_status {
-    QTI_RADIO_SERVICE_STATUS_DISABLED = 1,
-    QTI_RADIO_SERVICE_STATUS_ENABLED = 2,
-    QTI_RADIO_SERVICE_STATUS_INVALID = 0,
-} QTI_RADIO_SERVICE_STATUS;
+// based on on AIDL ims.apk -> vendor/qti/hardware/radio/ims/StatusType.java
+typedef enum qti_radio_status_type {
+    QTI_RADIO_STATUS_INVALID = 0,
+    QTI_RADIO_STATUS_DISABLED = 1,
+    QTI_RADIO_STATUS_PARTIALLY_ENABLED = 2,
+    QTI_RADIO_STATUS_ENABLED = 3,
+    QTI_RADIO_STATUS_NOT_SUPPORTED = 4,
+} QTI_RADIO_STATUS_TYPE;
 
 /*
 enum CallState : int32_t {
@@ -114,7 +107,7 @@ typedef enum qti_radio_call_state {
     QTI_RADIO_CALL_STATE_INVALID = 0,
 } QTI_RADIO_CALL_STATE;
 
-// Based on vendor/qti/hardware/radio/ims/ErrorCode.java
+// Based on AIDL ims.apk -> vendor/qti/hardware/radio/ims/ErrorCode.java
 typedef enum qti_radio_error_code {
     QTI_RADIO_ERROR_INVALID = 0,
     QTI_RADIO_ERROR_RADIO_NOT_AVAILABLE = 2,

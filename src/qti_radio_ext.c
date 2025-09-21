@@ -407,6 +407,44 @@ qti_ims_call_radio_state_name(QTI_RADIO_CALL_STATE state)
     }
 }
 
+static
+const char*
+qti_radio_call_type_name(QTI_RADIO_CALL_TYPE type)
+{
+    switch (type) {
+    case QTI_RADIO_CALL_TYPE_UNKNOWN:
+        return "UNKNOWN";
+    case QTI_RADIO_CALL_TYPE_VOICE:
+        return "VOICE";
+    case QTI_RADIO_CALL_TYPE_VT_TX:
+        return "VT_TX";
+    case QTI_RADIO_CALL_TYPE_VT_RX:
+        return "VT_RX";
+    case QTI_RADIO_CALL_TYPE_VT:
+        return "VT";
+    case QTI_RADIO_CALL_TYPE_VT_NODIR:
+        return "VT_NODIR";
+    case QTI_RADIO_CALL_TYPE_CS_VS_TX:
+        return "CS_VS_TX";
+    case QTI_RADIO_CALL_TYPE_CS_VS_RX:
+        return "CS_VS_RX";
+    case QTI_RADIO_CALL_TYPE_PS_VS_TX:
+        return "PS_VS_TX";
+    case QTI_RADIO_CALL_TYPE_PS_VS_RX:
+        return "PS_VS_RX";
+    case QTI_RADIO_CALL_TYPE_SMS:
+        return "SMS";
+    case QTI_RADIO_CALL_TYPE_UT:
+        return "UT";
+    case QTI_RADIO_CALL_TYPE_USSD:
+        return "USSD";
+    case QTI_RADIO_CALL_TYPE_CALLCOMPOSER:
+        return "CALLCOMPOSER";
+    default:
+        return "?";
+    }
+}
+
 typedef struct {
     gint32 state;
     gint32 index;
@@ -616,6 +654,105 @@ qti_radio_ext_handle_call_state_indication(
                       0, call_info_ptr);
     else
         g_ptr_array_free(call_info_ptr, TRUE);
+}
+
+// ServiceStatusInfo
+
+typedef struct {
+    gboolean isValid;
+    gint32 callType;
+    gint32 status;
+    gint32 restrictCause;
+    gint32 countAccTech;
+    // StatusForAccessTech[] accTechStatus;  // skip for now
+    gint32 rttMode;
+} AIDLServiceStatusInfo;
+
+static
+const char*
+qti_radio_status_type_name(QTI_RADIO_STATUS_TYPE status)
+{
+    switch (status) {
+    case QTI_RADIO_STATUS_INVALID:
+        return "INVALID";
+    case QTI_RADIO_STATUS_DISABLED:
+        return "DISABLED";
+    case QTI_RADIO_STATUS_PARTIALLY_ENABLED:
+        return "PARTIALLY_ENABLED";
+    case QTI_RADIO_STATUS_ENABLED:
+        return "ENABLED";
+    case QTI_RADIO_STATUS_NOT_SUPPORTED:
+        return "NOT_SUPPORTED";
+    default:
+        return "?";
+    }
+}
+
+static
+gboolean
+qti_radio_ext_read_service_status_info(GBinderReader* reader,
+                                       AIDLServiceStatusInfo* info)
+{
+    gsize parcel_size;
+    gsize initial_size;
+
+    memset(info, 0, sizeof(*info));
+
+    parcel_size = qti_binder_read_parcelable_size(reader);
+    if (parcel_size == 0)
+        return FALSE;
+
+    initial_size = gbinder_reader_bytes_read(reader);
+
+    if (!gbinder_reader_read_bool(reader, &info->isValid)) goto fail;
+    if (!gbinder_reader_read_int32(reader, &info->callType)) goto fail;
+    if (!gbinder_reader_read_int32(reader, &info->status)) goto fail;
+    if (!gbinder_reader_read_int32(reader, &info->restrictCause)) goto fail;
+
+    // accTechStatus[] is another typed array, skip for now:
+    if (!gbinder_reader_read_int32(reader, &info->countAccTech)) goto fail;
+    for (gint32 i=0; i < info->countAccTech; ++i)
+        gbinder_reader_read_parcelable(reader, NULL); // accTechStatus
+
+    if (!gbinder_reader_read_int32(reader, &info->rttMode)) goto fail;
+
+    qti_binder_skip_parcelable_end(reader, parcel_size, initial_size);
+    return TRUE;
+
+fail:
+    memset(info, 0, sizeof(*info));
+    return FALSE;
+}
+
+static
+void
+qti_radio_ext_handle_service_status_indication(
+    QtiRadioExt* self,
+    const GBinderReader* args)
+{
+    GBinderReader reader;
+    guint32 count;
+    gboolean success;
+
+    gbinder_reader_copy(&reader, args);
+
+    success = gbinder_reader_read_uint32(&reader, &count);
+    DBG("ServiceStatus indicator: %u entries", count);
+
+    for (guint32 i = 0; success && i < count; i++) {
+        AIDLServiceStatusInfo info;
+        success = qti_radio_ext_read_service_status_info(&reader, &info);
+
+        if (!success) {
+            DBG("Failed to parse ServiceStatusInfo %u", i);
+        } else {
+            DBG("isValid=%d callType=%s(%d) status=%s(%d) restrictCause=%d rttMode=%d",
+                info.isValid,
+                qti_radio_call_type_name(info.callType), info.callType,
+                qti_radio_status_type_name(info.status), info.status,
+                info.restrictCause, info.rttMode);
+        }
+    }
 }
 
 static
@@ -833,6 +970,9 @@ qti_radio_ext_indication(
             return NULL;
         case QTI_RADIO_IND_REG_STATE_INDICATION:
             qti_radio_ext_handle_ims_reg_status_report(self, &args);
+            return NULL;
+        case QTI_RADIO_IND_SVC_STATUS_INDICATION:
+            qti_radio_ext_handle_service_status_indication(self, &args);
             return NULL;
         case QTI_RADIO_IND_VOPS_INDICATION:
             qti_radio_ext_handle_vops_indication(self, &args);
