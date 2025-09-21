@@ -383,6 +383,30 @@ qti_ims_call_radio_state_to_state(
     }
 }
 
+static
+const char *
+qti_ims_call_radio_state_name(QTI_RADIO_CALL_STATE state)
+{
+    switch (state) {
+    case QTI_RADIO_CALL_STATE_INCOMING:
+        return "INCOMING";
+    case QTI_RADIO_CALL_STATE_ALERTING:
+        return "ALERTING";
+    case QTI_RADIO_CALL_STATE_HOLDING:
+        return "HOLDING";
+    case QTI_RADIO_CALL_STATE_WAITING:
+        return "WAITING";
+    case QTI_RADIO_CALL_STATE_ACTIVE:
+        return "ACTIVE";
+    case QTI_RADIO_CALL_STATE_END:
+        return "END";
+    case QTI_RADIO_CALL_STATE_DIALING:
+        return "DIALING";
+    default:
+        return "?";
+    }
+}
+
 typedef struct {
     gint32 state;
     gint32 index;
@@ -561,12 +585,12 @@ qti_radio_ext_handle_call_state_indication(
         if (!success) {
           DBG("Failed to parse CallInfo %d", success);
         } else {
-            DBG("state=%d index=%d toa=%d isMpty=%d\n"
+            DBG("state=%s(%d) index=%d toa=%d isMpty=%d\n"
                 "isMT=%d als=%d isVoice=%d isVoicePrivacy=%d\n"
                 "number=%s numberPresentation=%d name=%s namePresentation=%d\n"
                 "isEncrypted=%d isCalledPartyRinging=%d historyInfo=%s isVideoConfSupported=%d\n"
                 "tirMode=%d isPreparatory=%d diversionInfo=%s",
-                info.state, info.index, info.toa, info.isMpty,
+                qti_ims_call_radio_state_name(info.state), info.state, info.index, info.toa, info.isMpty,
                 info.isMT, info.als, info.isVoice, info.isVoicePrivacy,
                 info.number ? info.number : "", info.numberPresentation,
                 info.name ? info.name : "", info.namePresentation,
