@@ -55,16 +55,7 @@ typedef enum qti_radio_interface {
 #define QTI_RADIO_REQ_LAST_1_1          41
 #define QTI_RADIO_REQ_LAST_1_2          47
 
-/*
-enum RegState : int32_t {
-    REGISTERED,
-    NOT_REGISTERED,
-    REGISTERING,
-    INVALID,
-};
-*/
-
-// Updated based on AIDL ims.apk -> vendor/qti/hardware/radio/ims/RegState
+// based on AIDL ims.apk -> vendor/qti/hardware/radio/ims/RegState
 typedef enum qti_radio_reg_state {
     QTI_RADIO_REG_STATE_REGISTERED = 1,
     QTI_RADIO_REG_STATE_NOT_REGISTERED = 2,
@@ -82,19 +73,6 @@ typedef enum qti_radio_status_type {
     QTI_RADIO_STATUS_ENABLED = 3,
     QTI_RADIO_STATUS_NOT_SUPPORTED = 4,
 } QTI_RADIO_STATUS_TYPE;
-
-/*
-enum CallState : int32_t {
-    CALL_ACTIVE,
-    CALL_HOLDING,
-    CALL_DIALING,
-    CALL_ALERTING,
-    CALL_INCOMING,
-    CALL_WAITING,
-    CALL_END,
-    CALL_STATE_INVALID,
-};
-*/
 
 typedef enum qti_radio_call_state {
     QTI_RADIO_CALL_STATE_ACTIVE = 1,
@@ -142,39 +120,12 @@ typedef enum qti_radio_error_code {
     QTI_RADIO_ERROR_SUCCESS = 1
 } QTI_RADIO_ERROR_CODE;
 
-/*
-public @interface ClirMode {
-    public static final int DEFAULT = 1;
-    public static final int INVALID = 0;
-    public static final int INVOCATION = 2;
-    public static final int SUPRESSION = 3;
-}
-*/
 typedef enum qti_radio_ip_presentation {
     QTI_RADIO_IP_PRESENTATION_NUM_DEFAULT = 1,
     QTI_RADIO_IP_PRESENTATION_NUM_INVOCATION = 2,
     QTI_RADIO_IP_PRESENTATION_NUM_SUPRESSION = 3,
     QTI_RADIO_IP_PRESENTATION_INVALID = 0,
 } QTI_RADIO_IP_PRESENTATION;
-
-/*
-enum CallType : int32_t {
-    CALL_TYPE_VOICE,
-    CALL_TYPE_VT_TX,
-    CALL_TYPE_VT_RX,
-    CALL_TYPE_VT,
-    CALL_TYPE_VT_NODIR,
-    CALL_TYPE_CS_VS_TX,
-    CALL_TYPE_CS_VS_RX,
-    CALL_TYPE_PS_VS_TX,
-    CALL_TYPE_PS_VS_RX,
-    CALL_TYPE_UNKNOWN,
-    CALL_TYPE_SMS,
-    CALL_TYPE_UT,
-    CALL_TYPE_INVALID,
-};
-
-*/
 
 typedef enum qti_radio_call_type {
     QTI_RADIO_CALL_TYPE_VOICE = 1,
@@ -193,18 +144,6 @@ typedef enum qti_radio_call_type {
     QTI_RADIO_CALL_TYPE_CALLCOMPOSER = 0xd,
 } QTI_RADIO_CALL_TYPE;
 
-/*
-
-enum CallDomain : int32_t {
-    CALL_DOMAIN_UNKNOWN,
-    CALL_DOMAIN_CS,
-    CALL_DOMAIN_PS,
-    CALL_DOMAIN_AUTOMATIC,
-    CALL_DOMAIN_NOT_SET,
-    CALL_DOMAIN_INVALID,
-};
-*/
-
 typedef enum qti_radio_call_domain {
     QTI_RADIO_CALL_DOMAIN_UNKNOWN = 1,
     QTI_RADIO_CALL_DOMAIN_CS = 2,
@@ -214,38 +153,11 @@ typedef enum qti_radio_call_domain {
     QTI_RADIO_CALL_DOMAIN_INVALID = 0,
 } QTI_RADIO_CALL_DOMAIN;
 
-/*
-enum RttMode : int32_t {
-    RTT_MODE_DISABLED,
-    RTT_MODE_FULL,
-    RTT_MODE_INVALID,
-};
-*/
-
 typedef enum qti_radio_rtt_mode {
     QTI_RADIO_RTT_MODE_DISABLED = 1,
     QTI_RADIO_RTT_MODE_FULL = 2,
     QTI_RADIO_RTT_MODE_INVALID = 0,
 } QTI_RADIO_RTT_MODE;
-
-
-/*
-enum ImsSmsSendStatusResult : int32_t {
-    // Message was sent successfully.
-    SEND_STATUS_OK,
-    // IMS provider failed to send the message and platform
-        should not retry falling back to sending the message
-        using the radio.
-    SEND_STATUS_ERROR,
-    // IMS provider failed to send the message and platform
-        should retry again after setting TP-RD
-    SEND_STATUS_ERROR_RETRY,
-    // IMS provider failed to send the message and platform
-        should retry falling back to sending the message
-        using the radio.
-    SEND_STATUS_ERROR_FALLBACK,
-};
-*/
 
 typedef enum qti_radio_ims_sms_send_status_result {
     QTI_RADIO_SEND_STATUS_OK = 1,
@@ -254,27 +166,6 @@ typedef enum qti_radio_ims_sms_send_status_result {
     QTI_RADIO_SEND_STATUS_ERROR_FALLBACK = 4,
     QTI_RADIO_SEND_STATUS_INVALID = 0,
 } QTI_RADIO_IMS_SMS_SEND_STATUS_RESULT;
-
-/*
-enum ImsSmsSendFailureReason : int32_t {
-    RESULT_ERROR_NONE,
-    // Generic failure cause
-    RESULT_ERROR_GENERIC_FAILURE,
-    // Failed because radio was explicitly turned off
-    RESULT_ERROR_RADIO_OFF,
-    // Failed because no pdu provided
-    RESULT_ERROR_NULL_PDU,
-    // Failed because service is currently unavailable
-    RESULT_ERROR_NO_SERVICE,
-    // Failed because we reached the sending queue limit.
-    RESULT_ERROR_LIMIT_EXCEEDED,
-    // Failed because user denied the sending of this short code.
-    RESULT_ERROR_SHORT_CODE_NOT_ALLOWED,
-    // Failed because the user has denied this app
-        ever send premium short codes.
-    RESULT_ERROR_SHORT_CODE_NEVER_ALLOWED,
-};
-*/
 
 typedef enum qti_radio_ims_sms_send_failure_reason {
     QTI_RADIO_RESULT_ERROR_INVALID = 0,
@@ -305,16 +196,6 @@ typedef enum qti_radio_ims_sms_send_failure_reason {
     QTI_RADIO_RESULT_ERROR_REQUEST_NOT_SUPPORTED = 0x19,
 } QTI_RADIO_IMS_SMS_SEND_FAILURE_REASON;
 
-
-/*
-enum ImsSmsDeliverStatusResult : int32_t {
-    Message was delivered successfully.
-    DELIVER_STATUS_OK,
-    Message was not delivered.
-    DELIVER_STATUS_ERROR,
-};
-*/
-
 typedef enum qti_radio_ims_sms_deliver_status_result {
     QTI_RADIO_DELIVER_STATUS_INVALID = 0,
     QTI_RADIO_DELIVER_STATUS_ERROR = 1,
@@ -323,298 +204,17 @@ typedef enum qti_radio_ims_sms_deliver_status_result {
     QTI_RADIO_DELIVER_STATUS_ERROR_REQUEST_NOT_SUPPORTED = 4,
 } QTI_RADIO_IMS_SMS_DELIVER_STATUS_RESULT;
 
-/*
-enum ImsSmsStatusReportResult : int32_t {
-    // Status Report was set successfully.
-    STATUS_REPORT_STATUS_OK,
-    // Error while setting status report
-    STATUS_REPORT_STATUS_ERROR,
-};
-*/
-
 typedef enum qti_radio_ims_sms_status_report_result {
     QTI_RADIO_STATUS_REPORT_INVALID = 0,
     QTI_RADIO_STATUS_REPORT_OK = 1,
     QTI_RADIO_STATUS_REPORT_ERROR = 2,
 } QTI_RADIO_IMS_SMS_STATUS_REPORT_RESULT;
 
-/*
-enum VerificationStatus : int32_t {
-    //Telephone number is not validated.
-    STATUS_VALIDATION_NONE,
-    //Telephone number validation passed.
-    STATUS_VALIDATION_PASS,
-    // Telephone number validation failed.
-    STATUS_VALIDATION_FAIL,
-};
-*/
-
 typedef enum qti_radio_verification_status {
     QTI_RADIO_VALIDATION_NONE = 0,
     QTI_RADIO_VALIDATION_PASS = 1,
     QTI_RADIO_VALIDATION_FAIL = 2,
 } QTI_RADIO_VERIFICATION_STATUS;
-
-/*
-struct ImsSmsMessage {
-    uint32_t messageRef;
-    string format;
-    string smsc;
-    bool shallRetry;
-    vec<uint8_t>  pdu;
-};
-*/
-
-typedef struct qti_radio_ims_sms_message {
-    guint32 message_ref RADIO_ALIGNED(4);
-    GBinderHidlString format RADIO_ALIGNED(8);
-    GBinderHidlString smsc RADIO_ALIGNED(8);
-    guint8 shall_retry RADIO_ALIGNED(1);
-    GBinderHidlVec pdu RADIO_ALIGNED(8);
-} RADIO_ALIGNED(8) QtiRadioImsSmsMessage;
-
-/*
-struct ImsSmsSendStatusReport {
-    uint32_t messageRef;
-    string format;
-    vec<uint8_t>  pdu;
-};
-*/
-
-typedef struct qti_radio_ims_sms_send_status_report {
-    guint32 message_ref RADIO_ALIGNED(4);
-    GBinderHidlString format RADIO_ALIGNED(8);
-    GBinderHidlVec pdu RADIO_ALIGNED(8);
-} RADIO_ALIGNED(8) QtiRadioImsSmsSendStatusReport;
-
-/*
-
-struct RegistrationInfo {
-    RegState state;
-    uint32_t errorCode;
-    string errorMessage;
-    RadioTechType radioTech;
-    string pAssociatedUris;
-};
-*/
-
-typedef struct qti_radio_reg_info {
-    QTI_RADIO_REG_STATE state RADIO_ALIGNED(4);
-    guint32 error_code RADIO_ALIGNED(4);
-    GBinderHidlString error_message RADIO_ALIGNED(8);
-    guint32 radio_tech RADIO_ALIGNED(4);
-    GBinderHidlString uri RADIO_ALIGNED(8);
-} RADIO_ALIGNED(8) QtiRadioRegInfo;
-
-/*
-struct SipErrorInfo {
-    uint32_t errorCode;
-    string errorString;
-};
-
-*/
-
-typedef struct qti_radio_sip_error_info {
-    guint32 error_code RADIO_ALIGNED(4);
-    GBinderHidlString error_string RADIO_ALIGNED(8);
-} RADIO_ALIGNED(8) QtiRadioSipErrorInfo;
-
-/*
-struct CallFailCauseResponse {
-    CallFailCause failCause;
-    vec<uint8_t> errorinfo;
-    string networkErrorString;
-    bool hasErrorDetails;
-    SipErrorInfo errorDetails;
-};
-
-*/
-
-typedef struct qti_radio_call_fail_cause_response {
-    guint32 fail_cause RADIO_ALIGNED(4);
-    GBinderHidlVec errorinfo RADIO_ALIGNED(8);
-    GBinderHidlString network_error_string RADIO_ALIGNED(8);
-    guint8 has_error_details RADIO_ALIGNED(1);
-    QtiRadioSipErrorInfo error_details RADIO_ALIGNED(8);
-} RADIO_ALIGNED(8) QtiRadioCallFailCauseResponse;
-
-
-/*
-
-struct ServiceStatusInfo {
-    bool hasIsValid;
-    bool isValid;
-    ServiceType type;
-    CallType callType;
-    StatusType status;
-    vec<uint8_t> userdata;
-    uint32_t restrictCause;
-    vec<StatusForAccessTech> accTechStatus;
-    RttMode rttMode;
-};
-
-    */
-
-typedef struct qti_radio_service_status_info {
-    gboolean has_is_valid RADIO_ALIGNED(4);
-    gboolean is_valid RADIO_ALIGNED(4);
-    guint32 type RADIO_ALIGNED(4);
-    guint32 call_type RADIO_ALIGNED(4);
-    guint32 status RADIO_ALIGNED(4);
-    GBinderHidlVec userdata RADIO_ALIGNED(8);
-    guint32 restrict_cause RADIO_ALIGNED(4);
-    GBinderHidlVec acc_tech_status RADIO_ALIGNED(8);
-    guint32 rtt_mode RADIO_ALIGNED(4);
-} QtiRadioServiceStatusInfo;
-
-/*
-struct CallDetails {
-    CallType callType;
-    CallDomain callDomain;
-    uint32_t extrasLength;
-    vec<string> extras;
-
-    vec<ServiceStatusInfo> localAbility;
-    vec<ServiceStatusInfo> peerAbility;
-    uint32_t callSubstate;
-    uint32_t mediaId;
-    uint32_t causeCode;
-    RttMode rttMode;
-    string sipAlternateUri;
-};
-*/
-
-typedef struct qti_radio_call_details {
-    guint32 call_type RADIO_ALIGNED(4);
-    guint32 call_domain RADIO_ALIGNED(4);
-    guint32 extras_length RADIO_ALIGNED(4);
-
-    GBinderHidlVec extras RADIO_ALIGNED(8);
-    GBinderHidlVec local_ability RADIO_ALIGNED(8);
-    GBinderHidlVec peer_ability RADIO_ALIGNED(8);
-
-    guint32 call_substate RADIO_ALIGNED(4);
-    guint32 media_id RADIO_ALIGNED(4);
-    guint32 cause_code RADIO_ALIGNED(4);
-    guint32 rtt_mode RADIO_ALIGNED(4);
-    GBinderHidlString sip_alternate_uri RADIO_ALIGNED(8);
-} RADIO_ALIGNED(8) QtiRadioCallDetails;
-
-
-/*
-struct CallInfo {
-    CallState state;
-    uint32_t index;
-    uint32_t toa;
-    bool hasIsMpty;
-    bool isMpty;
-    bool hasIsMT;
-    bool isMT;
-    uint32_t als;
-    bool hasIsVoice;
-    bool isVoice;
-    bool hasIsVoicePrivacy;
-    bool isVoicePrivacy;
-    string number;
-    uint32_t numberPresentation;
-    string name;
-    uint32_t namePresentation;
-    bool hasCallDetails;
-    CallDetails callDetails;
-    bool hasFailCause;
-    CallFailCauseResponse failCause;
-    bool hasIsEncrypted;
-    bool isEncrypted;
-    bool hasIsCalledPartyRinging;
-    bool isCalledPartyRinging;
-    string historyInfo;
-    bool hasIsVideoConfSupported;
-    bool isVideoConfSupported;
-};
-*/
-
-typedef struct qti_radio_call_info {
-    QTI_RADIO_CALL_STATE state RADIO_ALIGNED(4);
-    guint32 index RADIO_ALIGNED(4);
-    guint32 toa RADIO_ALIGNED(4);
-    guint8 has_is_mpty RADIO_ALIGNED(1);
-    guint8 is_mpty RADIO_ALIGNED(1);
-    guint8 has_is_mt RADIO_ALIGNED(1);
-    guint8 is_mt RADIO_ALIGNED(1);
-    guint32 als RADIO_ALIGNED(4);
-    guint8 has_is_voice RADIO_ALIGNED(1);
-    guint8 is_voice RADIO_ALIGNED(1);
-    guint8 has_is_voice_privacy RADIO_ALIGNED(1);
-    guint8 is_voice_privacy RADIO_ALIGNED(1);
-    GBinderHidlString number RADIO_ALIGNED(8);
-    guint32 number_presentation RADIO_ALIGNED(4);
-    GBinderHidlString name RADIO_ALIGNED(8);
-    guint32 name_presentation RADIO_ALIGNED(4);
-    guint8 has_call_details RADIO_ALIGNED(1);
-    QtiRadioCallDetails call_details RADIO_ALIGNED(8);
-    guint8 has_fail_cause RADIO_ALIGNED(1);
-    QtiRadioCallFailCauseResponse fail_cause RADIO_ALIGNED(8);
-    guint8 has_is_encrypted RADIO_ALIGNED(1);
-    guint8 is_encrypted RADIO_ALIGNED(1);
-    guint8 has_is_called_party_ringing RADIO_ALIGNED(1);
-    guint8 is_called_party_ringing RADIO_ALIGNED(1);
-    GBinderHidlString history_info RADIO_ALIGNED(8);
-    guint8 has_is_video_conf_supported RADIO_ALIGNED(1);
-    guint8 is_video_conf_supported RADIO_ALIGNED(1);
-} RADIO_ALIGNED(8) QtiRadioCallInfo;
-
-/*
-struct DialRequest {
-    string address;
-    uint32_t clirMode;
-    IpPresentation presentation;
-    bool hasCallDetails;
-    CallDetails callDetails;
-    bool hasIsConferenceUri;
-    bool isConferenceUri;
-    bool hasIsCallPull;
-    bool isCallPull;
-    bool hasIsEncrypted;
-    bool isEncrypted;
-};
-
-*/
-
-typedef struct qti_radio_dial_request {
-    GBinderHidlString address RADIO_ALIGNED(8);
-    guint32 clir_mode RADIO_ALIGNED(4);
-    guint32 presentation RADIO_ALIGNED(4);
-    guint8 has_call_details RADIO_ALIGNED(1);
-    QtiRadioCallDetails call_details RADIO_ALIGNED(8);
-    guint8 has_is_conference_uri RADIO_ALIGNED(1);
-    guint8 is_conference_uri RADIO_ALIGNED(1);
-    guint8 has_is_call_pull RADIO_ALIGNED(1);
-    guint8 is_call_pull RADIO_ALIGNED(1);
-    guint8 has_is_encrypted RADIO_ALIGNED(1);
-    guint8 is_encrypted RADIO_ALIGNED(1);
-} RADIO_ALIGNED(8) QtiRadioDialRequest;
-
-/*
-struct HangupRequestInfo {
-    uint32_t connIndex;
-    bool hasMultiParty;
-    bool multiParty;
-    string connUri;
-    uint32_t conf_id;
-    bool hasFailCauseResponse;
-    CallFailCauseResponse failCauseResponse;
-};
-*/
-
-typedef struct qti_radio_hangup_request_info {
-    guint32 conn_index RADIO_ALIGNED(4);
-    guint8 has_multi_party RADIO_ALIGNED(1);
-    guint8 multi_party RADIO_ALIGNED(1);
-    GBinderHidlString conn_uri RADIO_ALIGNED(8);
-    guint32 conf_id RADIO_ALIGNED(4);
-    guint8 has_fail_cause_response RADIO_ALIGNED(1);
-    QtiRadioCallFailCauseResponse fail_cause_response RADIO_ALIGNED(8);
-} RADIO_ALIGNED(8) QtiRadioHangupRequestInfo;
 
 
 // based on IImsRadio and IImsRadioResponse stubs from ims.apk
@@ -744,14 +344,132 @@ typedef enum ims_radio_resp {
 
 
 typedef enum ims_radio_ind {
-    /* vendor.mediatek.hardware.qtiradioex@3.0::IImsRadioIndication */
 #define QTI_RADIO_IND_(code, name, NAME) QTI_RADIO_IND_##NAME = code,
-    // QTI_RADIO_IND_1_0(QTI_RADIO_IND_)
-    // QTI_RADIO_IND_1_1(QTI_RADIO_IND_)
-    // QTI_RADIO_IND_1_2(QTI_RADIO_IND_)
     QTI_RADIO_IND_AIDL(QTI_RADIO_IND_)
 #undef QTI_RADIO_IND_
 } IMS_RADIO_IND;
+
+////////////////
+// Struct below
+
+typedef struct qti_radio_ims_sms_message {
+    guint32 message_ref RADIO_ALIGNED(4);
+    GBinderHidlString format RADIO_ALIGNED(8);
+    GBinderHidlString smsc RADIO_ALIGNED(8);
+    guint8 shall_retry RADIO_ALIGNED(1);
+    GBinderHidlVec pdu RADIO_ALIGNED(8);
+} RADIO_ALIGNED(8) QtiRadioImsSmsMessage;
+
+typedef struct qti_radio_ims_sms_send_status_report {
+    guint32 message_ref RADIO_ALIGNED(4);
+    GBinderHidlString format RADIO_ALIGNED(8);
+    GBinderHidlVec pdu RADIO_ALIGNED(8);
+} RADIO_ALIGNED(8) QtiRadioImsSmsSendStatusReport;
+
+typedef struct qti_radio_reg_info {
+    QTI_RADIO_REG_STATE state RADIO_ALIGNED(4);
+    guint32 error_code RADIO_ALIGNED(4);
+    GBinderHidlString error_message RADIO_ALIGNED(8);
+    guint32 radio_tech RADIO_ALIGNED(4);
+    GBinderHidlString uri RADIO_ALIGNED(8);
+} RADIO_ALIGNED(8) QtiRadioRegInfo;
+
+typedef struct qti_radio_sip_error_info {
+    guint32 error_code RADIO_ALIGNED(4);
+    GBinderHidlString error_string RADIO_ALIGNED(8);
+} RADIO_ALIGNED(8) QtiRadioSipErrorInfo;
+
+typedef struct qti_radio_call_fail_cause_response {
+    guint32 fail_cause RADIO_ALIGNED(4);
+    GBinderHidlVec errorinfo RADIO_ALIGNED(8);
+    GBinderHidlString network_error_string RADIO_ALIGNED(8);
+    guint8 has_error_details RADIO_ALIGNED(1);
+    QtiRadioSipErrorInfo error_details RADIO_ALIGNED(8);
+} RADIO_ALIGNED(8) QtiRadioCallFailCauseResponse;
+
+typedef struct qti_radio_service_status_info {
+    gboolean has_is_valid RADIO_ALIGNED(4);
+    gboolean is_valid RADIO_ALIGNED(4);
+    guint32 type RADIO_ALIGNED(4);
+    guint32 call_type RADIO_ALIGNED(4);
+    guint32 status RADIO_ALIGNED(4);
+    GBinderHidlVec userdata RADIO_ALIGNED(8);
+    guint32 restrict_cause RADIO_ALIGNED(4);
+    GBinderHidlVec acc_tech_status RADIO_ALIGNED(8);
+    guint32 rtt_mode RADIO_ALIGNED(4);
+} QtiRadioServiceStatusInfo;
+
+typedef struct qti_radio_call_details {
+    guint32 call_type RADIO_ALIGNED(4);
+    guint32 call_domain RADIO_ALIGNED(4);
+    guint32 extras_length RADIO_ALIGNED(4);
+
+    GBinderHidlVec extras RADIO_ALIGNED(8);
+    GBinderHidlVec local_ability RADIO_ALIGNED(8);
+    GBinderHidlVec peer_ability RADIO_ALIGNED(8);
+
+    guint32 call_substate RADIO_ALIGNED(4);
+    guint32 media_id RADIO_ALIGNED(4);
+    guint32 cause_code RADIO_ALIGNED(4);
+    guint32 rtt_mode RADIO_ALIGNED(4);
+    GBinderHidlString sip_alternate_uri RADIO_ALIGNED(8);
+} RADIO_ALIGNED(8) QtiRadioCallDetails;
+
+typedef struct qti_radio_call_info {
+    QTI_RADIO_CALL_STATE state RADIO_ALIGNED(4);
+    guint32 index RADIO_ALIGNED(4);
+    guint32 toa RADIO_ALIGNED(4);
+    guint8 has_is_mpty RADIO_ALIGNED(1);
+    guint8 is_mpty RADIO_ALIGNED(1);
+    guint8 has_is_mt RADIO_ALIGNED(1);
+    guint8 is_mt RADIO_ALIGNED(1);
+    guint32 als RADIO_ALIGNED(4);
+    guint8 has_is_voice RADIO_ALIGNED(1);
+    guint8 is_voice RADIO_ALIGNED(1);
+    guint8 has_is_voice_privacy RADIO_ALIGNED(1);
+    guint8 is_voice_privacy RADIO_ALIGNED(1);
+    GBinderHidlString number RADIO_ALIGNED(8);
+    guint32 number_presentation RADIO_ALIGNED(4);
+    GBinderHidlString name RADIO_ALIGNED(8);
+    guint32 name_presentation RADIO_ALIGNED(4);
+    guint8 has_call_details RADIO_ALIGNED(1);
+    QtiRadioCallDetails call_details RADIO_ALIGNED(8);
+    guint8 has_fail_cause RADIO_ALIGNED(1);
+    QtiRadioCallFailCauseResponse fail_cause RADIO_ALIGNED(8);
+    guint8 has_is_encrypted RADIO_ALIGNED(1);
+    guint8 is_encrypted RADIO_ALIGNED(1);
+    guint8 has_is_called_party_ringing RADIO_ALIGNED(1);
+    guint8 is_called_party_ringing RADIO_ALIGNED(1);
+    GBinderHidlString history_info RADIO_ALIGNED(8);
+    guint8 has_is_video_conf_supported RADIO_ALIGNED(1);
+    guint8 is_video_conf_supported RADIO_ALIGNED(1);
+} RADIO_ALIGNED(8) QtiRadioCallInfo;
+
+typedef struct qti_radio_dial_request {
+    GBinderHidlString address RADIO_ALIGNED(8);
+    guint32 clir_mode RADIO_ALIGNED(4);
+    guint32 presentation RADIO_ALIGNED(4);
+    guint8 has_call_details RADIO_ALIGNED(1);
+    QtiRadioCallDetails call_details RADIO_ALIGNED(8);
+    guint8 has_is_conference_uri RADIO_ALIGNED(1);
+    guint8 is_conference_uri RADIO_ALIGNED(1);
+    guint8 has_is_call_pull RADIO_ALIGNED(1);
+    guint8 is_call_pull RADIO_ALIGNED(1);
+    guint8 has_is_encrypted RADIO_ALIGNED(1);
+    guint8 is_encrypted RADIO_ALIGNED(1);
+} RADIO_ALIGNED(8) QtiRadioDialRequest;
+
+typedef struct qti_radio_hangup_request_info {
+    guint32 conn_index RADIO_ALIGNED(4);
+    guint8 has_multi_party RADIO_ALIGNED(1);
+    guint8 multi_party RADIO_ALIGNED(1);
+    GBinderHidlString conn_uri RADIO_ALIGNED(8);
+    guint32 conf_id RADIO_ALIGNED(4);
+    guint8 has_fail_cause_response RADIO_ALIGNED(1);
+    QtiRadioCallFailCauseResponse fail_cause_response RADIO_ALIGNED(8);
+} RADIO_ALIGNED(8) QtiRadioHangupRequestInfo;
+
+
 
 #endif /* QTI_RADIO_EXT_TYPES_H */
 
