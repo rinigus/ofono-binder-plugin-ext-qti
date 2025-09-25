@@ -202,6 +202,20 @@ qti_ims_call_handle_call_info(
 
 static
 void
+qti_ims_call_handle_voice_disabled(
+    QtiRadioExt* radio,
+    void* user_data)
+{
+    DBG("Remove the list of active calls as voice is disabled");
+
+    QtiImsCall* self = THIS(user_data);
+    if (self->calls) {
+        g_ptr_array_remove_range(self->calls, 0, self->calls->len);
+    }
+}
+
+static
+void
 qti_ims_call_handle_ring(
     QtiRadioExt* radio,
     void* user_data)
@@ -519,6 +533,8 @@ qti_ims_call_new(
             qti_ims_call_handle_call_info, self);
         qti_radio_ext_add_ring_handler(radio_ext,
             qti_ims_call_handle_ring, self);
+        qti_radio_ext_add_voice_disabled_handler(radio_ext,
+            qti_ims_call_handle_voice_disabled, self);
 
         return BINDER_EXT_CALL(self);
     }

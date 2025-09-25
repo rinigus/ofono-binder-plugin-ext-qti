@@ -159,6 +159,43 @@ typedef enum qti_radio_rtt_mode {
     QTI_RADIO_RTT_MODE_INVALID = 0,
 } QTI_RADIO_RTT_MODE;
 
+typedef enum qti_radio_tech_type {
+    QTI_RADIO_TECH_INVALID   = 0,
+    QTI_RADIO_TECH_ANY       = 1,
+    QTI_RADIO_TECH_UNKNOWN   = 2,
+    QTI_RADIO_TECH_GPRS      = 3,
+    QTI_RADIO_TECH_EDGE      = 4,
+    QTI_RADIO_TECH_UMTS      = 5,
+    QTI_RADIO_TECH_IS95A     = 6,
+    QTI_RADIO_TECH_IS95B     = 7,
+    QTI_RADIO_TECH_RTT_1X    = 8,
+    QTI_RADIO_TECH_EVDO_0    = 9,
+    QTI_RADIO_TECH_EVDO_A    = 10,
+    QTI_RADIO_TECH_HSDPA     = 11,
+    QTI_RADIO_TECH_HSUPA     = 12,
+    QTI_RADIO_TECH_HSPA      = 13,
+    QTI_RADIO_TECH_EVDO_B    = 14,
+    QTI_RADIO_TECH_EHRPD     = 15,
+    QTI_RADIO_TECH_LTE       = 16,
+    QTI_RADIO_TECH_HSPAP     = 17,
+    QTI_RADIO_TECH_GSM       = 18,
+    QTI_RADIO_TECH_TD_SCDMA  = 19,
+    QTI_RADIO_TECH_WIFI      = 20,
+    QTI_RADIO_TECH_IWLAN     = 21,
+    QTI_RADIO_TECH_NR5G      = 22,
+    QTI_RADIO_TECH_C_IWLAN   = 23,
+} QTI_RADIO_TECH_TYPE;
+
+typedef enum qti_radio_handover_type {
+    QTI_RADIO_HANDOVER_INVALID                    = 0,
+    QTI_RADIO_HANDOVER_START                      = 1,
+    QTI_RADIO_HANDOVER_COMPLETE_SUCCESS           = 2,
+    QTI_RADIO_HANDOVER_COMPLETE_FAIL              = 3,
+    QTI_RADIO_HANDOVER_CANCEL                     = 4,
+    QTI_RADIO_HANDOVER_NOT_TRIGGERED              = 5,
+    QTI_RADIO_HANDOVER_NOT_TRIGGERED_MOBILE_DATA_OFF = 6,
+} QTI_RADIO_HANDOVER_TYPE;
+
 typedef enum qti_radio_ims_sms_send_status_result {
     QTI_RADIO_SEND_STATUS_OK = 1,
     QTI_RADIO_SEND_STATUS_ERROR = 2,

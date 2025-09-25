@@ -52,6 +52,7 @@ typedef struct qti_radio_ext {
     GBinderLocalObject* indication;
     GUtilIdlePool* pool;
     GHashTable* requests;
+    gboolean voice_enabled;
 } QtiRadioExt;
 
 GType qti_radio_ext_get_type() G_GNUC_INTERNAL;
@@ -94,6 +95,7 @@ enum qti_radio_ext_signal {
     SIGNAL_EXT_ON_RING,
     SIGNAL_EXT_ON_INCOMING_SMS,
     SIGNAL_EXT_ON_INCOMING_SMS_REPORT,
+    SIGNAL_EXT_ON_VOICE_DISABLED,
     SIGNAL_COUNT
 };
 
@@ -102,6 +104,7 @@ enum qti_radio_ext_signal {
 #define SIGNAL_EXT_ON_RING_NAME                     "qti-radio-ext-on-ring"
 #define SIGNAL_EXT_ON_INCOMING_SMS_NAME             "qti-radio-ext-on-incoming-sms"
 #define SIGNAL_EXT_ON_INCOMING_SMS_REPORT_NAME      "qti-radio-ext-on-incoming-sms-report"
+#define SIGNAL_EXT_ON_VOICE_DISABLED_NAME           "qti-radio-ext-on-voice-disabled"
 
 static guint qti_radio_ext_signals[SIGNAL_COUNT] = { 0 };
 
@@ -751,8 +754,123 @@ qti_radio_ext_handle_service_status_indication(
                 qti_radio_call_type_name(info.callType), info.callType,
                 qti_radio_status_type_name(info.status), info.status,
                 info.restrictCause, info.rttMode);
+
+            if (info.callType == QTI_RADIO_CALL_TYPE_VOICE) {
+                gboolean enabled = (info.status == QTI_RADIO_STATUS_ENABLED);
+                if (enabled != self->voice_enabled) {
+                    self->voice_enabled = enabled;
+                    if (!enabled) {
+                        g_signal_emit(
+                            self,
+                            qti_radio_ext_signals[SIGNAL_EXT_ON_VOICE_DISABLED],
+                            0);
+                    }
+                }
+            }
         }
     }
+}
+
+static
+const char*
+qti_radio_tech_type_name(QTI_RADIO_TECH_TYPE tech)
+{
+    switch (tech) {
+    case QTI_RADIO_TECH_INVALID:  return "INVALID";
+    case QTI_RADIO_TECH_ANY:      return "ANY";
+    case QTI_RADIO_TECH_UNKNOWN:  return "UNKNOWN";
+    case QTI_RADIO_TECH_GPRS:     return "GPRS";
+    case QTI_RADIO_TECH_EDGE:     return "EDGE";
+    case QTI_RADIO_TECH_UMTS:     return "UMTS";
+    case QTI_RADIO_TECH_IS95A:    return "IS95A";
+    case QTI_RADIO_TECH_IS95B:    return "IS95B";
+    case QTI_RADIO_TECH_RTT_1X:    return "RTT_1X";
+    case QTI_RADIO_TECH_EVDO_0:   return "EVDO_0";
+    case QTI_RADIO_TECH_EVDO_A:   return "EVDO_A";
+    case QTI_RADIO_TECH_HSDPA:    return "HSDPA";
+    case QTI_RADIO_TECH_HSUPA:    return "HSUPA";
+    case QTI_RADIO_TECH_HSPA:     return "HSPA";
+    case QTI_RADIO_TECH_EVDO_B:   return "EVDO_B";
+    case QTI_RADIO_TECH_EHRPD:    return "EHRPD";
+    case QTI_RADIO_TECH_LTE:      return "LTE";
+    case QTI_RADIO_TECH_HSPAP:    return "HSPAP";
+    case QTI_RADIO_TECH_GSM:      return "GSM";
+    case QTI_RADIO_TECH_TD_SCDMA: return "TD_SCDMA";
+    case QTI_RADIO_TECH_WIFI:     return "WIFI";
+    case QTI_RADIO_TECH_IWLAN:    return "IWLAN";
+    case QTI_RADIO_TECH_NR5G:     return "NR5G";
+    case QTI_RADIO_TECH_C_IWLAN:  return "C_IWLAN";
+    default:                      return "?";
+    }
+}
+
+static
+const char*
+qti_radio_handover_type_name(QTI_RADIO_HANDOVER_TYPE type)
+{
+    switch (type) {
+    case QTI_RADIO_HANDOVER_INVALID:
+        return "INVALID";
+    case QTI_RADIO_HANDOVER_START:
+        return "START";
+    case QTI_RADIO_HANDOVER_COMPLETE_SUCCESS:
+        return "COMPLETE_SUCCESS";
+    case QTI_RADIO_HANDOVER_COMPLETE_FAIL:
+        return "COMPLETE_FAIL";
+    case QTI_RADIO_HANDOVER_CANCEL:
+        return "CANCEL";
+    case QTI_RADIO_HANDOVER_NOT_TRIGGERED:
+        return "NOT_TRIGGERED";
+    case QTI_RADIO_HANDOVER_NOT_TRIGGERED_MOBILE_DATA_OFF:
+        return "NOT_TRIGGERED_MOBILE_DATA_OFF";
+    default:
+        return "?";
+    }
+}
+
+static
+void
+qti_radio_ext_handle_handover_indication(
+    QtiRadioExt* self,
+    const GBinderReader* args)
+{
+    GBinderReader reader;
+    gboolean success;
+
+    gbinder_reader_copy(&reader, args);
+
+    gsize parcel_size = qti_binder_read_parcelable_size(&reader);
+    if (parcel_size == 0)
+        return;
+
+    gint32 type;
+    gint32 srcTech;
+    gint32 targetTech;
+    char *errorCode = NULL;
+    char *errorMessage = NULL;
+
+    success = (gbinder_reader_read_int32(&reader, &type) &&
+               gbinder_reader_read_int32(&reader, &srcTech) &&
+               gbinder_reader_read_int32(&reader, &targetTech));
+
+    if (success) {
+        gbinder_reader_read_parcelable(&reader, NULL);
+        errorCode = gbinder_reader_read_string16(&reader);
+        errorMessage = gbinder_reader_read_string16(&reader);
+    } else {
+        DBG("Handover: error while parsing data");
+    }
+
+    DBG("Handover: type=%s(%d) src=%s(%d) target=%s(%d) errorCode=%s "
+        "errorMsg=%s parcelSize=%lu",
+        qti_radio_handover_type_name(type), type,
+        qti_radio_tech_type_name(srcTech), srcTech,
+        qti_radio_tech_type_name(targetTech), targetTech,
+        errorCode ? errorCode : "", errorMessage ? errorMessage : "",
+        parcel_size);
+
+    g_free(errorCode);
+    g_free(errorMessage);
 }
 
 static
@@ -974,6 +1092,9 @@ qti_radio_ext_indication(
         case QTI_RADIO_IND_SVC_STATUS_INDICATION:
             qti_radio_ext_handle_service_status_indication(self, &args);
             return NULL;
+        case QTI_RADIO_IND_HANDOVER_INDICATION:
+            qti_radio_ext_handle_handover_indication(self, &args);
+            return NULL;
         case QTI_RADIO_IND_VOPS_INDICATION:
             qti_radio_ext_handle_vops_indication(self, &args);
             return NULL;
@@ -1049,6 +1170,16 @@ qti_radio_ext_add_incoming_sms_report_handler(
 {
     return (G_LIKELY(self) && G_LIKELY(handler)) ? g_signal_connect(self,
         SIGNAL_EXT_ON_INCOMING_SMS_REPORT_NAME, G_CALLBACK(handler), user_data) : 0;
+}
+
+gulong
+qti_radio_ext_add_voice_disabled_handler(
+    QtiRadioExt* self,
+    QtiRadioExtVoiceDisabledFunc handler,
+    void* user_data)
+{
+    return (G_LIKELY(self) && G_LIKELY(handler)) ? g_signal_connect(self,
+        SIGNAL_EXT_ON_VOICE_DISABLED_NAME, G_CALLBACK(handler), user_data) : 0;
 }
 
 static
@@ -1343,6 +1474,7 @@ qti_radio_ext_create(
     int status;
 
     self->slot = g_strdup(slot);
+    self->voice_enabled = FALSE;
 
     self->client = gbinder_client_new2(remote,
         radio_iface_info, G_N_ELEMENTS(radio_iface_info));
@@ -1944,6 +2076,10 @@ qti_radio_ext_class_init(
         g_signal_new(SIGNAL_EXT_ON_INCOMING_SMS_REPORT_NAME, G_OBJECT_CLASS_TYPE(klass),
             G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE,
             3, G_TYPE_POINTER, G_TYPE_UINT, G_TYPE_UINT);
+    qti_radio_ext_signals[SIGNAL_EXT_ON_VOICE_DISABLED] =
+        g_signal_new(SIGNAL_EXT_ON_VOICE_DISABLED_NAME, G_OBJECT_CLASS_TYPE(klass),
+            G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE,
+            0);
 }
 
 /*

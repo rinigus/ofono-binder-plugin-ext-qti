@@ -47,7 +47,6 @@ typedef void (*QtiRadioExtRingFunc)(
     QtiRadioExt* radio,
     void* user_data);
 
-
 typedef void (*QtiRadioExtIncomingSmsFunc)(
     QtiRadioExt* radio,
     const void* pdu,
@@ -59,6 +58,10 @@ typedef void (*QtiRadioExtIncomingSmsReportFunc)(
     const void* pdu,
     guint pdu_len,
     guint msg_ref,
+    void* user_data);
+
+typedef void (*QtiRadioExtVoiceDisabledFunc)(
+    QtiRadioExt* radio,
     void* user_data);
 
 QtiRadioExt*
@@ -172,7 +175,7 @@ qti_radio_ext_add_incoming_sms_report_handler(
     QtiRadioExtIncomingSmsReportFunc handler,
     void* user_data);
 
-    guint
+guint
 qti_radio_ext_acknowledge_sms(
     QtiRadioExt* self,
     guint32 message_ref,
@@ -188,6 +191,12 @@ qti_radio_ext_acknowledge_sms_report(
     gboolean sms_report,
     QtiRadioExtResultFunc complete,
     GDestroyNotify destroy,
+    void* user_data);
+
+gulong
+qti_radio_ext_add_voice_disabled_handler(
+    QtiRadioExt* self,
+    QtiRadioExtVoiceDisabledFunc handler,
     void* user_data);
 
 #endif /* QTI_RADIO_EXT_H */
