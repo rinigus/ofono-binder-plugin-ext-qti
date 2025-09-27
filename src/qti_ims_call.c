@@ -598,7 +598,6 @@ qti_ims_call_finalize(
 
     qti_radio_ext_unref(self->radio_ext);
     gutil_idle_pool_destroy(self->pool);
-    gutil_ptrv_free((void**)self->calls);
     g_ptr_array_unref(self->calls);
     g_hash_table_unref(self->id_map);
     G_OBJECT_CLASS(PARENT_CLASS)->finalize(object);
