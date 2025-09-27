@@ -926,13 +926,11 @@ qti_radio_ext_handle_incoming_sms_indication(
         return;
     }
 
-    void *pdu_copy = g_memdup(pdu, pdu_len);
-
     DBG("%s: Incoming SMS indication format=%s verstat=%d pdu_len=%zu",
           self->slot, format, verstat, pdu_len);
 
     g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_INCOMING_SMS], 0,
-                  pdu_copy, pdu_len);
+                  pdu, pdu_len);
 }
 
 static
@@ -966,13 +964,11 @@ qti_radio_ext_handle_incoming_sms_report_indication(
         return;
     }
 
-    void *pdu_copy = g_memdup(pdu, pdu_len);
-
     DBG("%s: Incoming SMS indication msgref=%d, format=%s pdu_len=%zu",
           self->slot, msg_ref, format, pdu_len);
 
     g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_INCOMING_SMS_REPORT], 0,
-                  pdu_copy, pdu_len, msg_ref);
+                  pdu, pdu_len, msg_ref);
 }
 
 static
