@@ -412,7 +412,7 @@ qti_ims_sms_finalize(
     QtiImsSms* self = THIS(object);
     qti_radio_ext_unref(self->radio_ext);
     gutil_idle_pool_destroy(self->pool);
-    g_ptr_array_free(self->sms, TRUE);
+    g_ptr_array_unref(self->sms);
     g_hash_table_unref(self->id_map);
     G_OBJECT_CLASS(PARENT_CLASS)->finalize(object);
 }
