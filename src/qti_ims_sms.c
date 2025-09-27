@@ -45,7 +45,6 @@ typedef struct qti_ims_sms {
     GObject parent;
     GUtilIdlePool* pool;
     QtiRadioExt* radio_ext;
-    GPtrArray* sms;
     GHashTable* id_map;
 } QtiImsSms;
 
@@ -390,7 +389,6 @@ qti_ims_sms_new(
         QtiImsSms* self = g_object_new(THIS_TYPE, NULL);
 
         self->radio_ext = qti_radio_ext_ref(radio_ext);
-        self->sms = g_ptr_array_new_with_free_func(g_free);
 
         qti_radio_ext_add_incoming_sms_handler(radio_ext, qti_ims_sms_incoming_sms_handler, self);
         qti_radio_ext_add_incoming_sms_report_handler(radio_ext, qti_ims_sms_incoming_sms_report_handler, self);
@@ -412,7 +410,6 @@ qti_ims_sms_finalize(
     QtiImsSms* self = THIS(object);
     qti_radio_ext_unref(self->radio_ext);
     gutil_idle_pool_destroy(self->pool);
-    g_ptr_array_unref(self->sms);
     g_hash_table_unref(self->id_map);
     G_OBJECT_CLASS(PARENT_CLASS)->finalize(object);
 }
