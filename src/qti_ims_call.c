@@ -571,7 +571,7 @@ qti_ims_call_new(
         QtiImsCall* self = g_object_new(THIS_TYPE, NULL);
 
         self->radio_ext = qti_radio_ext_ref(radio_ext);
-        self->calls = g_ptr_array_new_with_free_func(g_free);
+        self->calls = g_ptr_array_new_null_terminated(0, g_free, TRUE);
 
         qti_radio_ext_add_call_state_handler(radio_ext,
             qti_ims_call_handle_call_info, self);
