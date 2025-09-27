@@ -361,9 +361,8 @@ qti_radio_ext_handle_ims_reg_status_report(
                     0, state);
 }
 
-static
 BINDER_EXT_CALL_STATE
-qti_ims_call_radio_state_to_state(
+qti_radio_ims_call_radio_state_to_state(
     QTI_RADIO_CALL_STATE state)
 {
     switch (state) {
@@ -448,89 +447,18 @@ qti_radio_call_type_name(QTI_RADIO_CALL_TYPE type)
     }
 }
 
-typedef struct {
-    gint32 state;
-    gint32 index;
-    gint32 toa;
-    gboolean isMpty;
-    gboolean isMT;
-    //MultiIdentityLineInfo* mtMultiLineInfo; // Parcelable
-    gint32 als;
-    gboolean isVoice;
-    gboolean isVoicePrivacy;
-    char* number;
-    gint32 numberPresentation;
-    char* name;
-    gint32 namePresentation;
-    //CallDetails* callDetails; // Parcelable
-    //CallFailCauseResponse* failCause; // Parcelable
-    gboolean isEncrypted;
-    gboolean isCalledPartyRinging;
-    char* historyInfo;
-    gboolean isVideoConfSupported;
-    //VerstatInfo* verstatInfo; // Parcelable
-    gint32 tirMode;
-    gboolean isPreparatory;
-    //CrsData* crsData; // Parcelable
-    //CallProgressInfo* callProgInfo; // Parcelable
-    char* diversionInfo;
-    //MsimAdditionalCallInfo* additionalCallInfo; // Parcelable
-    //AudioQuality* audioQuality; // Parcelable
-    //gint32 modemCallId; // not in the data
-} AIDLCallInfo;
-
-static
-BinderExtCallInfo*
-qti_ims_call_info_new(const AIDLCallInfo* info)
-{
-    const gsize number_len = (info->number && *info->number) ?
-        strlen(info->number) : 0;
-    const gsize name_len = (info->name && *info->name) ?
-        strlen(info->name) : 0;
-
-    const gsize total = G_ALIGN8(sizeof(BinderExtCallInfo)) +
-        (number_len ? G_ALIGN8(number_len + 1) : 0) +
-        (name_len ? G_ALIGN8(name_len + 1) : 0);
-
-    BinderExtCallInfo* dest = g_malloc0(total);
-    char* ptr = ((char*)dest) + G_ALIGN8(sizeof(BinderExtCallInfo));
-
-    dest->call_id = info->index;
-    dest->state = qti_ims_call_radio_state_to_state(info->state);
-    dest->type = BINDER_EXT_CALL_TYPE_VOICE;
-    dest->flags = BINDER_EXT_CALL_FLAG_IMS | BINDER_EXT_CALL_FLAG_INCOMING;
-    dest->toa = info->toa;
-
-    // Copy number if present
-    if (number_len) {
-        dest->number = ptr;
-        memcpy(ptr, info->number, number_len);
-        ptr += G_ALIGN8(number_len + 1);
-    } else {
-        dest->number = NULL;
-    }
-
-    // Copy name if present
-    if (name_len) {
-        dest->name = ptr;
-        memcpy(ptr, info->name, name_len);
-        // ptr += G_ALIGN8(name_len + 1); // not needed unless allocating more
-    } else {
-        dest->name = NULL;
-    }
-
-    return dest;
-}
-
 
 static
 gboolean
-qti_radio_ext_read_call_info(GBinderReader* reader, AIDLCallInfo* info)
+qti_radio_ext_read_call_info(GBinderReader* reader, QtiRadioCallInfo* info)
 {
     gsize parcel_size;
     gsize initial_size;
-
-    memset(info, 0, sizeof(*info));
+    char* temp_number = NULL;
+    char* temp_name = NULL;
+    char* temp_history_info = NULL;
+    char* temp_diversion_info = NULL;
+    gboolean success = TRUE;
 
     // parcelable header
     parcel_size = qti_binder_read_parcelable_size(reader);
@@ -541,61 +469,87 @@ qti_radio_ext_read_call_info(GBinderReader* reader, AIDLCallInfo* info)
     initial_size = gbinder_reader_bytes_read(reader);
 
     // actual fields
-    if (!gbinder_reader_read_int32(reader, &info->state)) goto fail;
-    if (!gbinder_reader_read_int32(reader, &info->index)) goto fail;
-    if (!gbinder_reader_read_int32(reader, &info->toa)) goto fail;
-    if (!gbinder_reader_read_bool(reader, &info->isMpty)) goto fail;
-    if (!gbinder_reader_read_bool(reader, &info->isMT)) goto fail;
+    success = gbinder_reader_read_int32(reader, &info->state) &&
+              gbinder_reader_read_int32(reader, &info->index) &&
+              gbinder_reader_read_int32(reader, &info->toa) &&
+              gbinder_reader_read_bool(reader, &info->isMpty) &&
+              gbinder_reader_read_bool(reader, &info->isMT);
 
-    gbinder_reader_read_parcelable(reader, NULL); // mtMultiLineInfo
+    if (success) gbinder_reader_read_parcelable(reader, NULL); // mtMultiLineInfo
 
-    if (!gbinder_reader_read_int32(reader, &info->als)) goto fail;
-    if (!gbinder_reader_read_bool(reader, &info->isVoice)) goto fail;
-    if (!gbinder_reader_read_bool(reader, &info->isVoicePrivacy)) goto fail;
+    success = success && gbinder_reader_read_int32(reader, &info->als) &&
+              gbinder_reader_read_bool(reader, &info->isVoice) &&
+              gbinder_reader_read_bool(reader, &info->isVoicePrivacy);
 
-    info->number = gbinder_reader_read_string16(reader);
-    if (!gbinder_reader_read_int32(reader, &info->numberPresentation)) goto fail;
+    if (success)
+      temp_number = gbinder_reader_read_string16(reader);
 
-    info->name = gbinder_reader_read_string16(reader);
-    if (!gbinder_reader_read_int32(reader, &info->namePresentation)) goto fail;
+    success =
+        success && gbinder_reader_read_int32(reader, &info->numberPresentation);
 
-    gbinder_reader_read_parcelable(reader, NULL); // callDetails
-    gbinder_reader_read_parcelable(reader, NULL); // failCause
+    if (success)
+      temp_name = gbinder_reader_read_string16(reader);
 
-    if (!gbinder_reader_read_bool(reader, &info->isEncrypted)) goto fail;
-    if (!gbinder_reader_read_bool(reader, &info->isCalledPartyRinging)) goto fail;
+    success =
+        success && gbinder_reader_read_int32(reader, &info->namePresentation);
 
-    info->historyInfo = gbinder_reader_read_string16(reader);
-    if (!gbinder_reader_read_bool(reader, &info->isVideoConfSupported)) goto fail;
+    if (success) {
+      gbinder_reader_read_parcelable(reader, NULL); // callDetails
+      gbinder_reader_read_parcelable(reader, NULL); // failCause
+    }
 
-    gbinder_reader_read_parcelable(reader, NULL); // verstatInfo
+    success = success && gbinder_reader_read_bool(reader, &info->isEncrypted) &&
+              gbinder_reader_read_bool(reader, &info->isCalledPartyRinging);
 
-    if (!gbinder_reader_read_int32(reader, &info->tirMode)) goto fail;
-    if (!gbinder_reader_read_bool(reader, &info->isPreparatory)) goto fail;
+    if (success)
+      temp_history_info = gbinder_reader_read_string16(reader);
 
-    gbinder_reader_read_parcelable(reader, NULL); // crsData
-    gbinder_reader_read_parcelable(reader, NULL); // callProgInfo
+    success = success &&
+              gbinder_reader_read_bool(reader, &info->isVideoConfSupported);
 
-    info->diversionInfo = gbinder_reader_read_string16(reader);
+    if (success)
+      gbinder_reader_read_parcelable(reader, NULL); // verstatInfo
 
-    qti_binder_skip_parcelable_end(reader, parcel_size, initial_size);
+    success = success && gbinder_reader_read_int32(reader, &info->tirMode) &&
+              gbinder_reader_read_bool(reader, &info->isPreparatory);
 
-    // gbinder_reader_read_parcelable(reader, NULL); // additionalCallInfo
-    // gbinder_reader_read_parcelable(reader, NULL); // audioQuality
+    if (success) {
+        gbinder_reader_read_parcelable(reader, NULL); // crsData
+        gbinder_reader_read_parcelable(reader, NULL); // callProgInfo
 
-    // this one seems to be absent in reality
-   // if (!gbinder_reader_read_int32(reader, &info->modemCallId)) goto fail;
+        temp_diversion_info = gbinder_reader_read_string16(reader);
 
-    return TRUE;
+        qti_binder_skip_parcelable_end(reader, parcel_size, initial_size);
 
-fail:
-    // Cleanup on partial failure
-    g_free(info->number);
-    g_free(info->name);
-    g_free(info->historyInfo);
-    g_free(info->diversionInfo);
-    memset(info, 0, sizeof(*info));
-    return FALSE;
+        // gbinder_reader_read_parcelable(reader, NULL); // additionalCallInfo
+        // gbinder_reader_read_parcelable(reader, NULL); // audioQuality
+
+        // this one seems to be absent in reality
+        // if (!gbinder_reader_read_int32(reader, &info->modemCallId)) goto fail;
+    }
+
+    // Copy strings to fixed-length arrays with null termination
+    if (temp_number)
+      g_strlcpy(info->number, temp_number, sizeof(info->number));
+
+    if (temp_name)
+      g_strlcpy(info->name, temp_name, sizeof(info->name));
+
+    if (temp_history_info)
+      g_strlcpy(info->historyInfo, temp_history_info,
+                sizeof(info->historyInfo));
+
+    if (temp_diversion_info)
+      g_strlcpy(info->diversionInfo, temp_diversion_info,
+                sizeof(info->diversionInfo));
+
+    // Cleanup
+    g_free(temp_number);
+    g_free(temp_name);
+    g_free(temp_history_info);
+    g_free(temp_diversion_info);
+
+    return success;
 }
 
 
@@ -620,43 +574,36 @@ qti_radio_ext_handle_call_state_indication(
 
     for (guint32 i = 0; success && i < count; i++) {
         // read one call info
-        AIDLCallInfo info;
-        success = qti_radio_ext_read_call_info(&reader, &info);
+        QtiRadioCallInfo* info = g_new0(QtiRadioCallInfo, 1);
+        success = qti_radio_ext_read_call_info(&reader, info);
 
         if (!success) {
           DBG("Failed to parse CallInfo %d", success);
+          g_free(info);
         } else {
             DBG("state=%s(%d) index=%d toa=%d isMpty=%d\n"
                 "isMT=%d als=%d isVoice=%d isVoicePrivacy=%d\n"
                 "number=%s numberPresentation=%d name=%s namePresentation=%d\n"
                 "isEncrypted=%d isCalledPartyRinging=%d historyInfo=%s isVideoConfSupported=%d\n"
                 "tirMode=%d isPreparatory=%d diversionInfo=%s",
-                qti_ims_call_radio_state_name(info.state), info.state, info.index, info.toa, info.isMpty,
-                info.isMT, info.als, info.isVoice, info.isVoicePrivacy,
-                info.number ? info.number : "", info.numberPresentation,
-                info.name ? info.name : "", info.namePresentation,
-                info.isEncrypted, info.isCalledPartyRinging,
-                info.historyInfo ? info.historyInfo : "", info.isVideoConfSupported,
-                info.tirMode, info.isPreparatory,
-                info.diversionInfo ? info.diversionInfo : ""
+                qti_ims_call_radio_state_name(info->state), info->state, info->index, info->toa, info->isMpty,
+                info->isMT, info->als, info->isVoice, info->isVoicePrivacy,
+                info->number, info->numberPresentation,
+                info->name, info->namePresentation,
+                info->isEncrypted, info->isCalledPartyRinging,
+                info->historyInfo, info->isVideoConfSupported,
+                info->tirMode, info->isPreparatory,
+                info->diversionInfo
             );
 
-            BinderExtCallInfo* dest = qti_ims_call_info_new(&info);
-            g_ptr_array_add(call_info_ptr, dest);
+            g_ptr_array_add(call_info_ptr, info);
         }
-
-        // free all strings
-        g_free(info.number);
-        g_free(info.name);
-        g_free(info.historyInfo);
-        g_free(info.diversionInfo);
     }
 
     if (success)
         g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_CALL_STATE_CHANGED],
                       0, call_info_ptr);
-    else
-        g_ptr_array_free(call_info_ptr, TRUE);
+    g_ptr_array_unref(call_info_ptr);
 }
 
 // ServiceStatusInfo

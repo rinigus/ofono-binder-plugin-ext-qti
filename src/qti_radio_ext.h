@@ -87,6 +87,9 @@ qti_radio_ext_read_ims_reg_status_info(
     QtiRadioExt* self,
     GBinderReader* reader);
 
+BINDER_EXT_CALL_STATE
+qti_radio_ims_call_radio_state_to_state(QTI_RADIO_CALL_STATE state);
+
 guint
 qti_radio_ext_set_reg_state(
     QtiRadioExt* self,

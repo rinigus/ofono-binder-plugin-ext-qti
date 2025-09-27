@@ -17,6 +17,8 @@
 #ifndef QTI_RADIO_EXT_TYPES_H
 #define QTI_RADIO_EXT_TYPES_H
 
+#include <ofono/types.h>
+
 typedef enum qti_radio_interface {
     QTI_RADIO_INTERFACE_NONE = -1,
     QTI_RADIO_INTERFACE_1_0,
@@ -54,6 +56,12 @@ typedef enum qti_radio_interface {
 #define QTI_RADIO_REQ_LAST_1_0          40
 #define QTI_RADIO_REQ_LAST_1_1          41
 #define QTI_RADIO_REQ_LAST_1_2          47
+
+/* String length constants for QtiRadioCallInfo */
+#define QTI_RADIO_MAX_PHONE_NUMBER_LENGTH      OFONO_MAX_PHONE_NUMBER_LENGTH
+#define QTI_RADIO_MAX_CALLER_NAME_LENGTH       OFONO_MAX_CALLER_NAME_LENGTH
+#define QTI_RADIO_MAX_HISTORY_INFO_LENGTH      80
+#define QTI_RADIO_MAX_DIVERSION_INFO_LENGTH    80
 
 // based on AIDL ims.apk -> vendor/qti/hardware/radio/ims/RegState
 typedef enum qti_radio_reg_state {
@@ -453,34 +461,35 @@ typedef struct qti_radio_call_details {
 } RADIO_ALIGNED(8) QtiRadioCallDetails;
 
 typedef struct qti_radio_call_info {
-    QTI_RADIO_CALL_STATE state RADIO_ALIGNED(4);
-    guint32 index RADIO_ALIGNED(4);
-    guint32 toa RADIO_ALIGNED(4);
-    guint8 has_is_mpty RADIO_ALIGNED(1);
-    guint8 is_mpty RADIO_ALIGNED(1);
-    guint8 has_is_mt RADIO_ALIGNED(1);
-    guint8 is_mt RADIO_ALIGNED(1);
-    guint32 als RADIO_ALIGNED(4);
-    guint8 has_is_voice RADIO_ALIGNED(1);
-    guint8 is_voice RADIO_ALIGNED(1);
-    guint8 has_is_voice_privacy RADIO_ALIGNED(1);
-    guint8 is_voice_privacy RADIO_ALIGNED(1);
-    GBinderHidlString number RADIO_ALIGNED(8);
-    guint32 number_presentation RADIO_ALIGNED(4);
-    GBinderHidlString name RADIO_ALIGNED(8);
-    guint32 name_presentation RADIO_ALIGNED(4);
-    guint8 has_call_details RADIO_ALIGNED(1);
-    QtiRadioCallDetails call_details RADIO_ALIGNED(8);
-    guint8 has_fail_cause RADIO_ALIGNED(1);
-    QtiRadioCallFailCauseResponse fail_cause RADIO_ALIGNED(8);
-    guint8 has_is_encrypted RADIO_ALIGNED(1);
-    guint8 is_encrypted RADIO_ALIGNED(1);
-    guint8 has_is_called_party_ringing RADIO_ALIGNED(1);
-    guint8 is_called_party_ringing RADIO_ALIGNED(1);
-    GBinderHidlString history_info RADIO_ALIGNED(8);
-    guint8 has_is_video_conf_supported RADIO_ALIGNED(1);
-    guint8 is_video_conf_supported RADIO_ALIGNED(1);
-} RADIO_ALIGNED(8) QtiRadioCallInfo;
+    gint32 state;
+    gint32 index;
+    gint32 toa;
+    gboolean isMpty;
+    gboolean isMT;
+    //MultiIdentityLineInfo* mtMultiLineInfo; // Parcelable
+    gint32 als;
+    gboolean isVoice;
+    gboolean isVoicePrivacy;
+    char number[QTI_RADIO_MAX_PHONE_NUMBER_LENGTH + 1];
+    gint32 numberPresentation;
+    char name[QTI_RADIO_MAX_CALLER_NAME_LENGTH + 1];
+    gint32 namePresentation;
+    //CallDetails* callDetails; // Parcelable
+    //CallFailCauseResponse* failCause; // Parcelable
+    gboolean isEncrypted;
+    gboolean isCalledPartyRinging;
+    char historyInfo[QTI_RADIO_MAX_HISTORY_INFO_LENGTH + 1];
+    gboolean isVideoConfSupported;
+    //VerstatInfo* verstatInfo; // Parcelable
+    gint32 tirMode;
+    gboolean isPreparatory;
+    //CrsData* crsData; // Parcelable
+    //CallProgressInfo* callProgInfo; // Parcelable
+    char diversionInfo[QTI_RADIO_MAX_DIVERSION_INFO_LENGTH + 1];
+    //MsimAdditionalCallInfo* additionalCallInfo; // Parcelable
+    //AudioQuality* audioQuality; // Parcelable
+    //gint32 modemCallId; // not in the data
+} QtiRadioCallInfo;
 
 typedef struct qti_radio_dial_request {
     GBinderHidlString address RADIO_ALIGNED(8);

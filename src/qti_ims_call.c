@@ -147,6 +147,49 @@ qti_ims_call_result_request_destroy(
  * BinderExtCallInterface
  *==========================================================================*/
 
+static
+BinderExtCallInfo*
+qti_ims_call_info_new(const QtiRadioCallInfo* info)
+{
+    const gsize number_len = (info->number && *info->number) ?
+        strlen(info->number) : 0;
+    const gsize name_len = (info->name && *info->name) ?
+        strlen(info->name) : 0;
+
+    const gsize total = G_ALIGN8(sizeof(BinderExtCallInfo)) +
+        (number_len ? G_ALIGN8(number_len + 1) : 0) +
+        (name_len ? G_ALIGN8(name_len + 1) : 0);
+
+    BinderExtCallInfo* dest = g_malloc0(total);
+    char* ptr = ((char*)dest) + G_ALIGN8(sizeof(BinderExtCallInfo));
+
+    dest->call_id = info->index;
+    dest->state = qti_radio_ims_call_radio_state_to_state(info->state);
+    dest->type = BINDER_EXT_CALL_TYPE_VOICE;
+    dest->flags = BINDER_EXT_CALL_FLAG_IMS | BINDER_EXT_CALL_FLAG_INCOMING;
+    dest->toa = info->toa;
+
+    // Copy number if present
+    if (number_len) {
+        dest->number = ptr;
+        memcpy(ptr, info->number, number_len);
+        ptr += G_ALIGN8(number_len + 1);
+    } else {
+        dest->number = NULL;
+    }
+
+    // Copy name if present
+    if (name_len) {
+        dest->name = ptr;
+        memcpy(ptr, info->name, name_len);
+        ptr += G_ALIGN8(name_len + 1);
+    } else {
+        dest->name = NULL;
+    }
+
+    return dest;
+}
+
 // find call by id
 static
 BinderExtCallInfo*
@@ -175,24 +218,25 @@ qti_ims_call_handle_call_info(
 
     // loop over the updated calls
     for (int i = 0; i < updated_calls->len; i++) {
-        BinderExtCallInfo* info = g_ptr_array_index(updated_calls, i);
-        BinderExtCallInfo* call = qti_ims_call_info_find(self, info->call_id);
+        QtiRadioCallInfo*  info = g_ptr_array_index(updated_calls, i);
+        gint32 call_id = info->index;
+        BINDER_EXT_CALL_STATE state =
+            qti_radio_ims_call_radio_state_to_state(info->state);
 
-        if (info->state == BINDER_EXT_CALL_STATE_END) {
-            g_signal_emit(THIS(user_data),
-                qti_ims_call_signals[SIGNAL_CALL_END], 0, info->call_id, "");
+        BinderExtCallInfo* call = qti_ims_call_info_find(self, call_id);
 
-            if (call)
-                g_ptr_array_remove(self->calls, call);
-            continue;
-        }  else if (call) {
-            call->state = info->state;
+        if (state == BINDER_EXT_CALL_STATE_END) {
+          g_signal_emit(THIS(user_data), qti_ims_call_signals[SIGNAL_CALL_END],
+                        0, call_id, "");
+
+          if (call)
+            g_ptr_array_remove(self->calls, call);
+        } else if (call) {
+            call->state = state;
         } else {
             // add a new call
-            BinderExtCallInfo* copy = g_memdup(info, sizeof(BinderExtCallInfo));
-            copy->number = g_strdup(info->number);
-            copy->name = g_strdup(info->name);
-            g_ptr_array_add(self->calls, copy);
+            call = qti_ims_call_info_new(info);
+            g_ptr_array_add(self->calls, call);
         }
     }
 
@@ -555,6 +599,7 @@ qti_ims_call_finalize(
     qti_radio_ext_unref(self->radio_ext);
     gutil_idle_pool_destroy(self->pool);
     gutil_ptrv_free((void**)self->calls);
+    g_ptr_array_unref(self->calls);
     g_hash_table_unref(self->id_map);
     G_OBJECT_CLASS(PARENT_CLASS)->finalize(object);
 }
