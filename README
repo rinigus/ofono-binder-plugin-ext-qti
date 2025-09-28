@@ -1,9 +1,10 @@
 Qti ofono binder plugin extension
 ====================================
 
-It doesn't really do anything. It's just a demonstration of how
-the extension interfaces (BINDER_EXT_TYPE_IMS being used as an
-example) are supposed to be implemented.
+This plugin implements IMS support for QCOM devices when using QCRIL
+that has imsradio exposed through AIDL interface. Plugin is based
+on earlier demo code by Jolla and OSS implementation of IMS plugin
+for HIDL-exposed imsradio.
 
 Here is what happens when this extension gets loaded.
 
