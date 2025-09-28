@@ -1804,6 +1804,60 @@ qti_radio_ext_hangup(
 
 static
 void
+qti_radio_ext_hold_args(
+    GBinderWriter* writer,
+    va_list va)
+{
+    guint call_id = va_arg(va, guint);
+
+    gbinder_writer_append_int32(writer, call_id);
+}
+
+guint
+qti_radio_ext_hold(
+    QtiRadioExt* self,
+    guint call_id,
+    QtiRadioExtResultFunc complete,
+    GDestroyNotify destroy,
+    void* user_data)
+{
+    return qti_radio_ext_result_request_submit(self,
+        QTI_RADIO_REQ_HOLD,
+        QTI_RADIO_RESP_HOLD,
+        qti_radio_ext_hold_args,
+        complete, destroy, user_data,
+        call_id);
+}
+
+static
+void
+qti_radio_ext_resume_args(
+    GBinderWriter* writer,
+    va_list va)
+{
+    guint call_id = va_arg(va, guint);
+
+    gbinder_writer_append_int32(writer, call_id);
+}
+
+guint
+qti_radio_ext_resume(
+    QtiRadioExt* self,
+    guint call_id,
+    QtiRadioExtResultFunc complete,
+    GDestroyNotify destroy,
+    void* user_data)
+{
+    return qti_radio_ext_result_request_submit(self,
+        QTI_RADIO_REQ_RESUME,
+        QTI_RADIO_RESP_RESUME,
+        qti_radio_ext_resume_args,
+        complete, destroy, user_data,
+        call_id);
+}
+
+static
+void
 qti_radio_ext_send_ims_sms_args(
     GBinderWriter* writer,
     va_list va)

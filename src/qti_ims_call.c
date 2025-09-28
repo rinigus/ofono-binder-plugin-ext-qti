@@ -71,6 +71,17 @@ typedef struct qti_ims_call_result_request {
     void* user_data;
 } QtiImsCallResultRequest;
 
+typedef struct qti_ims_call_swap_second_request {
+    gboolean step1_success;
+    BINDER_EXT_CALL_ANSWER_FLAGS answer_flags;
+    guint call_hold;
+    guint call_incoming;
+    BinderExtCall *ext;
+    BinderExtCallResultFunc complete;
+    GDestroyNotify destroy;
+    void *user_data;
+} QtiImsCallSwapSecondRequest;
+
 enum qti_ims_call_signal {
     SIGNAL_CALL_STATE_CHANGED,
     SIGNAL_CALL_END,
@@ -205,6 +216,32 @@ qti_ims_call_info_find(
         }
     }
     return NULL;
+}
+
+static
+BinderExtCallInfo*
+qti_ims_call_info_find_by_state(
+    QtiImsCall* self,
+    BINDER_EXT_CALL_STATE state)
+{
+    for (int i = 0; i < self->calls->len; i++) {
+        BinderExtCallInfo* info = (BinderExtCallInfo*) g_ptr_array_index(self->calls, i);
+        if (info->state == state)
+            return info;
+    }
+    return NULL; // no call was found
+}
+
+static
+guint
+qti_ims_call_id_find_by_state(
+    QtiImsCall* self,
+    BINDER_EXT_CALL_STATE state)
+{
+    BinderExtCallInfo* info = qti_ims_call_info_find_by_state(self, state);
+    if (info)
+        return info->call_id;
+    return 0;
 }
 
 static
@@ -399,7 +436,34 @@ qti_ims_call_answer(
     guint id = qti_radio_ext_answer(self->radio_ext, call_type, presentation, mode,
         qti_ims_call_result_response, qti_ims_call_result_request_destroy, req);
 
-    DBG("Answering return %d", id);
+    if (id) {
+        req->id = id;
+        g_hash_table_insert(self->id_map, ID_KEY(id), ID_VALUE(id));
+    } else {
+        qti_ims_call_result_request_free(req);
+    }
+
+    return id;
+}
+
+static
+guint
+qti_ims_call_hold(
+    BinderExtCall* ext,
+    guint call_id,
+    BinderExtCallResultFunc complete,
+    GDestroyNotify destroy,
+    void* user_data)
+{
+    QtiImsCall* self = THIS(ext);
+
+    DBG("Put call on hold: %u", call_id);
+
+    QtiImsCallResultRequest* req = qti_ims_call_result_request_new(ext,
+        complete, destroy, user_data);
+
+    guint id = qti_radio_ext_hold(self->radio_ext, call_id,
+        qti_ims_call_result_response, qti_ims_call_result_request_destroy, req);
 
     if (id) {
         req->id = id;
@@ -413,16 +477,31 @@ qti_ims_call_answer(
 
 static
 guint
-qti_ims_call_swap(
+qti_ims_call_resume(
     BinderExtCall* ext,
-    BINDER_EXT_CALL_SWAP_FLAGS swap_flags,
-    BINDER_EXT_CALL_ANSWER_FLAGS answer_flags,
+    guint call_id,
     BinderExtCallResultFunc complete,
     GDestroyNotify destroy,
     void* user_data)
 {
-    DBG("swap is not implemented yet");
-    return 0;
+    QtiImsCall* self = THIS(ext);
+
+    DBG("Resume call: %u", call_id);
+
+    QtiImsCallResultRequest* req = qti_ims_call_result_request_new(ext,
+        complete, destroy, user_data);
+
+    guint id = qti_radio_ext_resume(self->radio_ext, call_id,
+        qti_ims_call_result_response, qti_ims_call_result_request_destroy, req);
+
+    if (id) {
+        req->id = id;
+        g_hash_table_insert(self->id_map, ID_KEY(id), ID_VALUE(id));
+    } else {
+        qti_ims_call_result_request_free(req);
+    }
+
+    return id;
 }
 
 static
@@ -452,6 +531,137 @@ qti_ims_call_hangup(
     }
 
     return id;
+}
+
+static
+guint
+qti_ims_call_swap_step_activate(
+    BinderExtCall* ext,
+    BINDER_EXT_CALL_ANSWER_FLAGS answer_flags,
+    guint call_hold,
+    guint call_incoming,
+    BinderExtCallResultFunc complete,
+    GDestroyNotify destroy,
+    void* user_data)
+{
+    if (call_incoming) {
+        DBG("Proceeding by answering incoming call. Hopefully, call=%u is answered", call_incoming);
+        return qti_ims_call_answer(ext, answer_flags, complete, destroy,
+                                   user_data);
+    }
+
+    if (call_hold) {
+        DBG("Proceeding with resuming a call=%u", call_hold);
+        return qti_ims_call_resume(ext, call_hold, complete, destroy,
+                                   user_data);
+    }
+
+    DBG("Nothing to do - unexpected call of qti_ims_call_swap_step_activate");
+    return 0;
+}
+
+static
+void
+qti_ims_call_swap_step1_complete(
+    BinderExtCall* ext,
+    BINDER_EXT_CALL_RESULT result,
+    void* user_data)
+{
+    QtiImsCallSwapSecondRequest *req = (QtiImsCallSwapSecondRequest *)user_data;
+
+    if (result != BINDER_EXT_CALL_RESULT_OK) {
+        DBG("Call swap step 1 operation failed, cancelling further processing");
+        if (req->complete)
+            req->complete(req->ext, result, req->user_data);
+        return;
+    }
+
+    req->step1_success = TRUE;
+
+    qti_ims_call_swap_step_activate(req->ext, req->answer_flags, req->call_hold,
+                                    req->call_incoming, req->complete,
+                                    req->destroy, req->user_data);
+}
+
+static
+void
+qti_ims_call_swap_step1_destroy(
+    gpointer user_data)
+{
+    QtiImsCallSwapSecondRequest *req = (QtiImsCallSwapSecondRequest *)user_data;
+    if (!req->step1_success) {
+        // mimic qti_ims_call_result_request_free as we don't proceed to step with activation
+        BinderExtCall* ext = req->ext;
+        if (req->destroy) 
+            req->destroy(req->user_data);
+        binder_ext_call_unref(ext);
+    }
+    g_free(user_data);
+}
+
+static
+guint
+qti_ims_call_swap(
+    BinderExtCall* ext,
+    BINDER_EXT_CALL_SWAP_FLAGS swap_flags,
+    BINDER_EXT_CALL_ANSWER_FLAGS answer_flags,
+    BinderExtCallResultFunc complete,
+    GDestroyNotify destroy,
+    void* user_data)
+{
+    QtiImsCall* self = THIS(ext);
+
+    DBG("Call swap: swap_flags=%u answer_flags=%u", swap_flags, answer_flags);
+
+    guint call_active =
+        qti_ims_call_id_find_by_state(self, BINDER_EXT_CALL_STATE_ACTIVE);
+    guint call_hold =
+        qti_ims_call_id_find_by_state(self, BINDER_EXT_CALL_STATE_HOLDING);
+    guint call_incoming =
+        qti_ims_call_id_find_by_state(self, BINDER_EXT_CALL_STATE_INCOMING);
+    guint call_waiting =
+        qti_ims_call_id_find_by_state(self, BINDER_EXT_CALL_STATE_WAITING);
+    gboolean full_swap = (call_active && (call_hold || call_incoming || call_waiting));
+
+    if (!call_incoming)
+        call_incoming = call_waiting;
+
+    DBG("Current calls: active=%u onhold=%u incoming=%u -> full_swap=%u",
+        call_active, call_hold, call_incoming, full_swap);
+
+    if (full_swap) {
+        // prepare for two step operation
+        QtiImsCallSwapSecondRequest *rdata =
+            g_new0(QtiImsCallSwapSecondRequest, 1);
+
+        rdata->step1_success = FALSE;
+        rdata->answer_flags = answer_flags;
+        rdata->call_hold = call_hold;
+        rdata->call_incoming = call_incoming;
+        rdata->ext = ext;
+        rdata->complete = complete;
+        rdata->destroy = destroy;
+        rdata->user_data = user_data;
+
+        // replace callbacks and data
+        complete = qti_ims_call_swap_step1_complete;
+        destroy = qti_ims_call_swap_step1_destroy;
+        user_data = rdata;
+    }
+
+    // deal with active call first
+    if (swap_flags == BINDER_EXT_CALL_SWAP_FLAG_HANGUP && call_active) {
+        return qti_ims_call_hangup(
+            ext, call_active, BINDER_EXT_CALL_HANGUP_TERMINATE,
+            BINDER_EXT_CALL_HANGUP_NO_FLAGS, complete, destroy, user_data);
+    } else if (call_active) {
+        return qti_ims_call_hold(ext, call_active, complete, destroy, user_data);
+    }
+
+    // this is called only if there are no active calls
+    return qti_ims_call_swap_step_activate(ext, answer_flags, call_hold,
+                                           call_incoming, complete, destroy,
+                                           user_data);
 }
 
 static

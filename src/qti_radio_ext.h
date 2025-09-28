@@ -130,6 +130,22 @@ qti_radio_ext_hangup(
     void* user_data);
 
 guint
+qti_radio_ext_hold(
+    QtiRadioExt* self,
+    guint call_id,
+    QtiRadioExtResultFunc complete,
+    GDestroyNotify destroy,
+    void* user_data);
+
+guint
+qti_radio_ext_resume(
+    QtiRadioExt* self,
+    guint call_id,
+    QtiRadioExtResultFunc complete,
+    GDestroyNotify destroy,
+    void* user_data);
+
+guint
 qti_radio_ext_send_ims_sms(
     QtiRadioExt* self,
     const char* smsc,
