@@ -64,6 +64,13 @@ typedef void (*QtiRadioExtVoiceDisabledFunc)(
     QtiRadioExt* radio,
     void* user_data);
 
+typedef void (*QtiRadioExtHandoverFunc)(
+    QtiRadioExt* radio,
+    QTI_RADIO_HANDOVER_TYPE type,
+    QTI_RADIO_TECH_TYPE srcTech,
+    QTI_RADIO_TECH_TYPE targetTech,
+    void* user_data);
+
 QtiRadioExt*
 qti_radio_ext_new(
     const char* dev,
@@ -216,6 +223,12 @@ gulong
 qti_radio_ext_add_voice_disabled_handler(
     QtiRadioExt* self,
     QtiRadioExtVoiceDisabledFunc handler,
+    void* user_data);
+
+gulong
+qti_radio_ext_add_handover_handler(
+    QtiRadioExt* self,
+    QtiRadioExtHandoverFunc handler,
     void* user_data);
 
 #endif /* QTI_RADIO_EXT_H */

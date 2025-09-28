@@ -287,7 +287,7 @@ qti_ims_call_handle_voice_disabled(
     QtiRadioExt* radio,
     void* user_data)
 {
-    DBG("Remove the list of active calls as voice is disabled");
+    DBG("Remove the list of calls as voice is disabled");
 
     QtiImsCall* self = THIS(user_data);
     if (self->calls) {
@@ -664,33 +664,33 @@ qti_ims_call_swap(
                                            user_data);
 }
 
-static
-guint
-qti_ims_call_conference(
-    BinderExtCall* ext,
-    BINDER_EXT_CALL_CONFERENCE_FLAGS flags,
-    BinderExtCallResultFunc complete,
-    GDestroyNotify destroy,
-    void* user_data)
-{
-    // when implemented, enable in qti_ims_call_iface_init
-    DBG("conference is not implemented yet");
-    return 0;
-}
+// static
+// guint
+// qti_ims_call_conference(
+//     BinderExtCall* ext,
+//     BINDER_EXT_CALL_CONFERENCE_FLAGS flags,
+//     BinderExtCallResultFunc complete,
+//     GDestroyNotify destroy,
+//     void* user_data)
+// {
+//     // when implemented, enable in qti_ims_call_iface_init
+//     DBG("conference is not implemented yet");
+//     return 0;
+// }
 
-static
-guint
-qti_ims_call_send_dtmf(
-    BinderExtCall* ext,
-    const char* tones,
-    BinderExtCallResultFunc complete,
-    GDestroyNotify destroy,
-    void* user_data)
-{
-    // when implemented, enable in qti_ims_call_iface_init
-    DBG("send_dtmf is not implemented yet");
-    return 0;
-}
+// static
+// guint
+// qti_ims_call_send_dtmf(
+//     BinderExtCall* ext,
+//     const char* tones,
+//     BinderExtCallResultFunc complete,
+//     GDestroyNotify destroy,
+//     void* user_data)
+// {
+//     // when implemented, enable in qti_ims_call_iface_init
+//     DBG("send_dtmf is not implemented yet");
+//     return 0;
+// }
 
 static
 void
@@ -703,6 +703,50 @@ qti_ims_call_cancel(
         ID_KEY(id)));
 
     qti_radio_ext_cancel(self->radio_ext, mapped ? mapped : id);
+}
+
+static
+void
+qti_ims_call_handle_handover(
+    QtiRadioExt* radio,
+    QTI_RADIO_HANDOVER_TYPE type,
+    QTI_RADIO_TECH_TYPE srcTech,
+    QTI_RADIO_TECH_TYPE targetTech,
+    void* user_data)
+{
+    QtiImsCall* self = THIS(user_data);
+
+    DBG("Handle handover event: type=%d srcTech=%d targetTech=%d", type, srcTech, targetTech);
+
+    if (type == QTI_RADIO_HANDOVER_COMPLETE_SUCCESS) {
+        // Based on testing and is a concern for calls on hold
+        //
+        // If there is no interaction with the calls, such handover will close
+        // calls that are in holding state. Sometimes if helps to trigger hold request on these calls. This
+        // request will fail with GENERIC_FAILURE(3). However, as a result, with some probability, call 
+        // will stay on hold even after handover.
+        //
+        // Alternative is to hangup all calls on hold in this case. This seem to work every time it
+        // was tested and at least leads to a clean state.
+        //
+        // Without doing anything, calls can either be dropped after some time or, as happened rarely, can
+        // linger around without any ability by ofono to close them. To avoid such ambiquity, this implementation
+        // triggers hangup on these calls.
+        for (int i = 0; i < self->calls->len; i++) {
+            BinderExtCallInfo* info = (BinderExtCallInfo*) g_ptr_array_index(self->calls, i);
+            if (info->state == BINDER_EXT_CALL_STATE_HOLDING) {
+                // DBG("Sending on hold request for call %u to keep it alive after handover", info->call_id);
+                // qti_ims_call_hold(BINDER_EXT_CALL(self), info->call_id, NULL,
+                //                   NULL, NULL);
+
+                DBG("Hangup request for call %u to cleanup after handover", info->call_id);
+                qti_ims_call_hangup(BINDER_EXT_CALL(self), info->call_id,
+                                    BINDER_EXT_CALL_HANGUP_TERMINATE,
+                                    BINDER_EXT_CALL_HANGUP_NO_FLAGS, NULL,
+                                    NULL, NULL);
+            }
+        }
+    }
 }
 
 static
@@ -791,6 +835,8 @@ qti_ims_call_new(
             qti_ims_call_handle_ring, self);
         qti_radio_ext_add_voice_disabled_handler(radio_ext,
             qti_ims_call_handle_voice_disabled, self);
+        qti_radio_ext_add_handover_handler(radio_ext,
+            qti_ims_call_handle_handover, self);
 
         return BINDER_EXT_CALL(self);
     }
