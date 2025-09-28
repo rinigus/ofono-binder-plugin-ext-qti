@@ -267,16 +267,16 @@ void
 qti_radio_ext_dump_data(
     const GBinderReader* reader)
 {
-    static const GLogModule* log = &qti_radio_ext_binder_dump_module;
-    const int level = GLOG_LEVEL_VERBOSE;
-    gsize size;
-    const guint8* data;
+    // static const GLogModule* log = &qti_radio_ext_binder_dump_module;
+    // const int level = GLOG_LEVEL_VERBOSE;
+    // gsize size;
+    // const guint8* data;
 
-    if (!gutil_log_enabled(log, level))
-        return;
+    // if (!gutil_log_enabled(log, level))
+    //     return;
 
-    data = gbinder_reader_get_data(reader, &size);
-    gutil_log_dump(log, level, "  ",  data, size);
+    // data = gbinder_reader_get_data(reader, &size);
+    // gutil_log_dump(log, level, "  ",  data, size);
 }
 
 static
@@ -284,19 +284,19 @@ void
 qti_radio_ext_dump_request(
     GBinderLocalRequest* args)
 {
-    static const GLogModule* log = &qti_radio_ext_binder_dump_module;
-    const int level = GLOG_LEVEL_VERBOSE;
-    GBinderWriter writer;
-    const guint8* data;
-    gsize size;
+    // static const GLogModule* log = &qti_radio_ext_binder_dump_module;
+    // const int level = GLOG_LEVEL_VERBOSE;
+    // GBinderWriter writer;
+    // const guint8* data;
+    // gsize size;
 
-    if (!gutil_log_enabled(log, level))
-        return;
+    // if (!gutil_log_enabled(log, level))
+    //     return;
 
-    /* Use writer API to fetch the raw data */
-    gbinder_local_request_init_writer(args, &writer);
-    data = gbinder_writer_get_data(&writer, &size);
-    gutil_log_dump(log, level, "  ", data, size);
+    // /* Use writer API to fetch the raw data */
+    // gbinder_local_request_init_writer(args, &writer);
+    // data = gbinder_writer_get_data(&writer, &size);
+    // gutil_log_dump(log, level, "  ", data, size);
 }
 
 QTI_RADIO_REG_STATE
