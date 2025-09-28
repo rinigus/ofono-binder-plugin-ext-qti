@@ -994,38 +994,6 @@ qti_radio_ext_indication(
     qti_radio_ext_log_ind(self, code);
     qti_radio_ext_dump_data(&args);
 
-    // if (g_str_equal(iface, QTI_RADIO_INDICATION_1_0)) {
-    //     switch(code) {
-    //     case QTI_RADIO_IND_REG_STATE_INDICATION:
-    //         qti_radio_ext_handle_ims_reg_status_report(self, &args);
-    //         return NULL;
-    //     case QTI_RADIO_IND_CALL_STATE_INDICATION:
-    //         qti_radio_ext_handle_call_state_indication(self, &args);
-    //         return NULL;
-    //     case QTI_RADIO_IND_RING_INDICATION:
-    //         g_signal_emit(self, qti_radio_ext_signals[SIGNAL_EXT_ON_RING], 0);
-    //         return NULL;
-    //     }
-    // } else if (g_str_equal(iface, QTI_RADIO_INDICATION_1_1)) {
-    //     switch(code) {
-    //     case QTI_RADIO_IND_CALL_STATE_INDICATION_1_1:
-    //         qti_radio_ext_handle_call_state_indication(self, &args);
-    //         return NULL;
-    //     }
-    // } else if (g_str_equal(iface, QTI_RADIO_INDICATION_1_2)) {
-    //     switch(code) {
-    //     case QTI_RADIO_IND_CALL_STATE_INDICATION_1_2:
-    //         qti_radio_ext_handle_call_state_indication(self, &args);
-    //         return NULL;
-    //     case QTI_RADIO_IND_SMS_STATUS_REPORT_INDICATION:
-    //         DBG("SMS status report indication");
-    //         return NULL;
-    //     case QTI_RADIO_IND_INCOMING_SMS_INDICATION:
-    //         qti_radio_ext_handle_incoming_sms_indication(self, &args);
-    //         return NULL;
-    //     }
-    // }
-
     if (g_str_equal(iface, QTI_RADIO_INDICATION_AIDL)) {
         switch(code) {
         case QTI_RADIO_IND_CALL_STATE_INDICATION:
@@ -1388,9 +1356,6 @@ qti_radio_ext_result_request_submit(
 
 
 static const GBinderClientIfaceInfo radio_iface_info[] = {
-    // {QTI_RADIO_1_2, QTI_RADIO_REQ_LAST_1_2 },
-    // {QTI_RADIO_1_1, QTI_RADIO_REQ_LAST_1_1 },
-    // {QTI_RADIO_1_0, QTI_RADIO_REQ_LAST_1_0 },
     {QTI_RADIO_AIDL, UINT_MAX }
 };
 
@@ -1408,13 +1373,10 @@ typedef struct qti_radio_interface_desc {
         QTI_RADIO_INDICATION_##v
 
 static const QtiRadioInterfaceDesc qti_radio_interfaces[] = {
-    // { QTI_RADIO_INTERFACE_DESC(1_2) },
-    // { QTI_RADIO_INTERFACE_DESC(1_1) },
-    // { QTI_RADIO_INTERFACE_DESC(1_0) },
     { QTI_RADIO_INTERFACE_DESC(AIDL) }
 };
 
-#define DEFAULT_INTERFACE QTI_RADIO_INTERFACE_AIDL //QTI_RADIO_INTERFACE_1_2
+#define DEFAULT_INTERFACE QTI_RADIO_INTERFACE_AIDL
 
 
 static
