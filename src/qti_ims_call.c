@@ -673,6 +673,7 @@ qti_ims_call_conference(
     GDestroyNotify destroy,
     void* user_data)
 {
+    // when implemented, enable in qti_ims_call_iface_init
     DBG("conference is not implemented yet");
     return 0;
 }
@@ -686,6 +687,7 @@ qti_ims_call_send_dtmf(
     GDestroyNotify destroy,
     void* user_data)
 {
+    // when implemented, enable in qti_ims_call_iface_init
     DBG("send_dtmf is not implemented yet");
     return 0;
 }
@@ -758,8 +760,8 @@ qti_ims_call_iface_init(
     iface->dial = qti_ims_call_dial;
     iface->answer = qti_ims_call_answer;
     iface->swap = qti_ims_call_swap;
-    iface->conference = qti_ims_call_conference;
-    iface->send_dtmf = qti_ims_call_send_dtmf;
+    iface->conference = NULL; // not implemented - qti_ims_call_conference;
+    iface->send_dtmf = NULL; // not implemented - qti_ims_call_send_dtmf;
     iface->hangup = qti_ims_call_hangup;
     iface->cancel = qti_ims_call_cancel;
     iface->add_calls_changed_handler =
