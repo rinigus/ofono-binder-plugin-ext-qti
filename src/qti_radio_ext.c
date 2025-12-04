@@ -1628,7 +1628,7 @@ qti_radio_ext_dial_args(
     initial_size_redialinfo = gbinder_writer_bytes_written(writer);
     gbinder_writer_append_int32(writer, 0);
 
-    gbinder_writer_append_int32(writer, 548); // callFailReason: default "misc"
+    gbinder_writer_append_int32(writer, QTI_RADIO_CALL_FAIL_CAUSE_ERROR_UNSPECIFIED); // callFailReason: default "misc"
     gbinder_writer_append_int32(writer, 0); // callFailRadioTech: unknown?
 
     // write RedialInfo size
@@ -1712,11 +1712,11 @@ qti_radio_ext_hangup_args(
 
     gint32 failCauseReason; // Normal call end BINDER_EXT_CALL_HANGUP_TERMINATE
     if (reason == BINDER_EXT_CALL_HANGUP_IGNORE)
-        failCauseReason = 519; // SIP_REQUEST_TIMEOUT
+        failCauseReason = QTI_RADIO_CALL_FAIL_CAUSE_NORMAL_UNSPECIFIED;
     else if (reason == BINDER_EXT_CALL_HANGUP_REJECT)
-        failCauseReason = 502; // USER_REJECT
+        failCauseReason = QTI_RADIO_CALL_FAIL_CAUSE_USER_REJECT;
     else // BINDER_EXT_CALL_HANGUP_TERMINATE
-      failCauseReason = 2; // NORMAL
+      failCauseReason = QTI_RADIO_CALL_FAIL_CAUSE_NORMAL;
 
     /* Non-null parcelable */
     gbinder_writer_append_int32(writer, 1);
